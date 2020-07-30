@@ -96,6 +96,7 @@ class TLSTMCell(N.Module):
             C_ST = torch.tanh(torch.matmul(c_t, self.W_decomp) + self.b_decomp)
             C_ST_dis = torch.mul(T, C_ST)
             c_t = c_t - C_ST + C_ST_dis
+
             # input gate
             i_t = torch.sigmoid(torch.matmul(x_t, self.Wi) + torch.matmul(h_t, self.Ui) + self.bi)
             # forget gate
@@ -105,11 +106,10 @@ class TLSTMCell(N.Module):
             # cadidate MemCell
             C = torch.tanh(torch.matmul(x_t, self.Wc) + torch.matmul(h_t, self.Uc) + self.bc)
             # current MemCell
-            C_t = f_t * c_t + i_t * C
+            c_t = f_t * c_t + i_t * C
             # current hidden state
-            c_h_t = o_t * torch.tanh(C_t)
-            # hidden_seq.append(torch.stack((c_h_t, C_t)))
-            hidden_seq.append(c_h_t.unsqueeze(0))  # create extra dim for later concat (seq, batch, input)
+            h_t = o_t * torch.tanh(c_t)
+            hidden_seq.append(h_t.unsqueeze(0))  # create extra dim for later concat (seq, batch, input)
 
         hidden_seq = torch.cat(hidden_seq, dim=0)  # concat to get the seq dim back (seq, batch, input)
         # hidden_seq = hidden_seq.transpose(0, 1).contiguous()  # (seq, batch, input) => (batch, seq, input)

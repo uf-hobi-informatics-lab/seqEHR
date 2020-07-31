@@ -4,4 +4,3 @@ data/
 .ipynb_checkpoints/
 model/
 __pycache__/
-Transformer/

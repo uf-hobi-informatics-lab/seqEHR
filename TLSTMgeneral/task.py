@@ -112,10 +112,13 @@ def train(args, model, features, times, labels):
             model.train()
             loss, _, _ = model(feature_tensor, time_tensor, label_tensor)
             if args.fp16:
+                torch.nn.utils.clip_grad_value_(amp.master_params(optimizer), args.max_grad_norm)
                 with amp.scale_loss(loss, optimizer) as scaled_loss:
                     scaled_loss.backward()
             else:
                 loss.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
+
             optimizer.step()
             model.zero_grad()
             tr_loss += loss.item()

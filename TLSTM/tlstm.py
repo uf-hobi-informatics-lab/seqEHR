@@ -34,7 +34,7 @@ class SoftmaxCrossEntropyLoss(N.Module):
             raise ValueError("Target size ({}) must be the same as input size ({})".format(targets.size(),
                                                                                            inputs.size()))
 
-        inputs = F.softmax(inputs)
+        inputs = F.softmax(inputs, dim=1)
         loss = -torch.sum(targets * torch.log(inputs), 1)
         loss = torch.unsqueeze(loss, 1)
         return torch.mean(loss)
@@ -66,12 +66,19 @@ class TLSTMCell(N.Module):
         self.W_decomp = Parameter(torch.Tensor(hidden_dim, hidden_dim))
         self.b_decomp = Parameter(torch.Tensor(hidden_dim))
 
+        self.init_weights()
+
+        self.c1 = torch.tensor(1)
+        self.c2 = torch.tensor(np.e)
+
     def init_weights(self):
         for p in self.parameters():
             if p.data.ndimension() >= 2:
-                N.init.xavier_uniform_(p.data)
+                # N.init.xavier_uniform_(p.data)
+                N.init.normal_(p.data, mean=0.0, std=0.1)
             else:
-                N.init.zeros_(p.data)
+                # N.init.zeros_(p.data)
+                N.init.ones_(p.data)
 
     def forward(self, x: torch.Tensor, time: torch.Tensor, prev_hidden_state=None):
         # x has three dim: batch size(pats), seq_size(encounters), v_dim(features)
@@ -93,18 +100,17 @@ class TLSTMCell(N.Module):
             # process time difference
             t_t = time[:, t, :]
             T = self.map_elapse_time(t_t)
-            C_ST = torch.tanh(torch.matmul(c_t, self.W_decomp) + self.b_decomp)
+            C_ST = torch.tanh(c_t @ self.W_decomp + self.b_decomp)
             C_ST_dis = torch.mul(T, C_ST)
             c_t = c_t - C_ST + C_ST_dis
-
             # input gate
-            i_t = torch.sigmoid(torch.matmul(x_t, self.Wi) + torch.matmul(h_t, self.Ui) + self.bi)
+            i_t = torch.sigmoid(x_t @ self.Wi + h_t @ self.Ui + self.bi)
             # forget gate
-            f_t = torch.sigmoid(torch.matmul(x_t, self.Wf) + torch.matmul(h_t, self.Uf) + self.bf)
+            f_t = torch.sigmoid(x_t @ self.Wf + h_t @ self.Uf + self.bf)
             # output gate
-            o_t = torch.sigmoid(torch.matmul(x_t, self.Wog) + torch.matmul(h_t, self.Uog) + self.bog)
+            o_t = torch.sigmoid(x_t @ self.Wog + h_t @ self.Uog + self.bog)
             # candidate MemCell
-            c_h = torch.tanh(torch.matmul(x_t, self.Wc) + torch.matmul(h_t, self.Uc) + self.bc)
+            c_h = torch.tanh(x_t @ self.Wc + h_t @ self.Uc + self.bc)
             # current MemCell
             c_t = f_t * c_t + i_t * c_h
             # current hidden state
@@ -116,11 +122,8 @@ class TLSTMCell(N.Module):
         return hidden_seq, (h_t, c_t)
 
     def map_elapse_time(self, t):
-        c1 = torch.tensor(1, dtype=torch.float32)
-        c2 = torch.tensor(np.e, dtype=torch.float32)
-
-        T = torch.div(c1, torch.log(t + c2))
-        grid = torch.ones((1, self.hidden_dim), dtype=torch.float32)
+        T = torch.div(self.c1, torch.log(t + self.c2))
+        grid = torch.ones((1, self.hidden_dim))
         return torch.matmul(T, grid)
 
 

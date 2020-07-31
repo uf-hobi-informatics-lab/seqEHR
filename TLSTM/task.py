@@ -24,24 +24,33 @@ def _eval(model, features, times, labels):
         """.format(len(features), len(times), len(labels))
     data_idxs = list(range(len(features)))
 
-    y_preds, y_trues, gs_labels, pred_labels = np.array([]), np.array([]), np.array([]), np.array([])
+    y_preds, y_trues, gs_labels, pred_labels = None, None, None, None
 
     for data_idx in data_idxs:
         # prepare data
         feature = features[data_idx]
         time = times[data_idx]
+        time = np.reshape(time, [time.shape[0], time.shape[2], time.shape[1]])
         label = labels[data_idx]
-        gs_labels = np.concatenate([gs_labels, label], axis=0)
-        y_trues = np.concatenate([y_trues, np.argmax(label, dim=1)], axis=0)
         # to tensor on device
-        feature_tensor = torch.tensor(feature).to(args.device)
-        time_tensor = torch.tensor(time).to(args.device)
-        label_tensor = torch.tensor(label).to(args.device)
+        feature_tensor = torch.tensor(feature, dtype=torch.float32).to(args.device)
+        time_tensor = torch.tensor(time, dtype=torch.float32).to(args.device)
+        label_tensor = torch.tensor(label, dtype=torch.float32).to(args.device)
 
         with torch.no_grad():
-            _, logits, y_pred = model(feature, time, label)
-            pred_labels = np.concatenate([pred_labels, logits.detach().cpu().numpy()], axis=0)
-            y_preds = np.concatenate([y_preds, y_pred.detach().cpu().numpy()], axis=0)
+            _, logits, y_pred = model(feature_tensor, time_tensor, label_tensor)
+            logits = logits.detach().cpu().numpy()
+            y_pred = y_pred.detach().cpu().numpy()
+            if y_preds is None:
+                pred_labels = logits
+                y_preds = y_pred
+                gs_labels = label
+                y_trues = np.argmax(label, axis=1)
+            else:
+                pred_labels = np.concatenate([pred_labels, logits], axis=0)
+                y_preds = np.concatenate([y_preds, y_pred], axis=0)
+                gs_labels = np.concatenate([gs_labels, label], axis=0)
+                y_trues = np.concatenate([y_trues, np.argmax(label, axis=1)], axis=0)
 
     total_acc = accuracy_score(y_trues, y_preds)
     total_auc = roc_auc_score(gs_labels, pred_labels, average='micro')
@@ -92,21 +101,22 @@ def train(args, model, features, times, labels):
             # prepare data
             feature = features[data_idx]
             time = times[data_idx]
+            time = np.reshape(time, [time.shape[0], time.shape[2], time.shape[1]])
             label = labels[data_idx]
             # to tensor on device
-            feature_tensor = torch.tensor(feature).to(args.device)
-            time_tensor = torch.tensor(time).to(args.device)
-            label_tensor = torch.tensor(label).to(args.device)
+            feature_tensor = torch.tensor(feature, dtype=torch.float32).to(args.device)
+            time_tensor = torch.tensor(time, dtype=torch.float32).to(args.device)
+            label_tensor = torch.tensor(label, dtype=torch.float32).to(args.device)
 
             # training
             model.train()
-            loss, _, _ = model(feature, time, label)
+            loss, _, _ = model(feature_tensor, time_tensor, label_tensor)
             if args.fp16:
                 with amp.scale_loss(loss, optimizer) as scaled_loss:
                     scaled_loss.backward()
-                torch.nn.utils.clip_grad_norm_(amp.master_params(optimizer), args.max_grad_norm)
+                torch.nn.utils.clip_grad_value_(amp.master_params(optimizer), args.max_grad_norm)
             else:
-                torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
+                torch.nn.utils.clip_grad_value_(model.parameters(), args.max_grad_norm)
                 loss.backward()
             optimizer.step()
             model.zero_grad()
@@ -142,8 +152,8 @@ def main(args):
         train_elapsed_data = pkl_load("../data/elapsed_train.pkl")
         train_labels = pkl_load("../data/label_train.pkl")
         # init config
-        input_dim = train_data[0].shape(2)
-        output_dim = train_labels[0].shape(1)
+        input_dim = train_data[0].shape[2]
+        output_dim = train_labels[0].shape[1]
         config = TLSTMConfig(input_dim, output_dim, args.hidden_dim, args.fc_dim, args.dropout_rate)
         # init TLSTM model
         model = TLSTM(config=config)

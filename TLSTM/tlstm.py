@@ -2,7 +2,7 @@
 # Time-Aware LSTM
 # Originally published in "Patient Subtyping via Time-Aware LSTM Networks", KDD, 2017
 # This is the Pytorch version re-implementation
-# Xi Yang, alexgre@ufl.edu
+# Author: BugFace
 #################
 
 import torch
@@ -103,10 +103,10 @@ class TLSTMCell(N.Module):
             f_t = torch.sigmoid(torch.matmul(x_t, self.Wf) + torch.matmul(h_t, self.Uf) + self.bf)
             # output gate
             o_t = torch.sigmoid(torch.matmul(x_t, self.Wog) + torch.matmul(h_t, self.Uog) + self.bog)
-            # cadidate MemCell
-            C = torch.tanh(torch.matmul(x_t, self.Wc) + torch.matmul(h_t, self.Uc) + self.bc)
+            # candidate MemCell
+            c_h = torch.tanh(torch.matmul(x_t, self.Wc) + torch.matmul(h_t, self.Uc) + self.bc)
             # current MemCell
-            c_t = f_t * c_t + i_t * C
+            c_t = f_t * c_t + i_t * c_h
             # current hidden state
             h_t = o_t * torch.tanh(c_t)
             hidden_seq.append(h_t.unsqueeze(0))  # create extra dim for later concat (seq, batch, input)
@@ -144,10 +144,11 @@ class TLSTM(N.Module):
     def forward(self, feature, time, labels):
         # get raw logits
         seq, (h_t, c_t) = self.tlstm(feature, time)
-        seq = seq[-1, :, :]  # (seq, batch, input); get the last seq for classification
-        seq = F.relu(self.fc_layer(seq))
-        seq = F.dropout(seq, p=self.dropout_prob)
-        logits = self.output_layer(seq)
+        # seq = seq[-1, :, :]  # (seq, batch, input); get the last seq for classification
+        last_state = h_t
+        last_state = F.relu(self.fc_layer(last_state))
+        last_state = F.dropout(last_state, p=self.dropout_prob)
+        logits = self.output_layer(last_state)
 
         # measure loss
         loss = self.loss_fct(logits, labels)

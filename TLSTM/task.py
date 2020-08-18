@@ -146,9 +146,9 @@ def main(args):
 
     # load training data
     if args.do_train:
-        train_data = pkl_load("../data/data_train.pkl")
-        train_elapsed_data = pkl_load("../data/elapsed_train.pkl")
-        train_labels = pkl_load("../data/label_train.pkl")
+        train_data = pkl_load("../data/tlstm_sync/data_train.pkl")
+        train_elapsed_data = pkl_load("../data/tlstm_sync/elapsed_train.pkl")
+        train_labels = pkl_load("../data/tlstm_sync/label_train.pkl")
         # init config
         input_dim = train_data[0].shape[2]
         output_dim = train_labels[0].shape[1]
@@ -164,9 +164,9 @@ def main(args):
 
     # load test data
     if args.do_test:
-        test_data = pkl_load("../data/data_test.pkl")
-        test_elapsed_data = pkl_load("../data/elapsed_test.pkl")
-        test_labels = pkl_load("../data/label_test.pkl")
+        test_data = pkl_load("../data/tlstm_sync/data_test.pkl")
+        test_elapsed_data = pkl_load("../data/tlstm_sync/elapsed_test.pkl")
+        test_labels = pkl_load("../data/tlstm_sync/label_test.pkl")
         config = pkl_load(Path(args.config_path) / conf)
         model = TLSTM(config=config)
         model.load_state_dict(torch.load(Path(args.model_path) / "pytorch_model.bin"))

@@ -39,10 +39,10 @@ def create_logger(logger_name="", log_level="d", set_file=None):
     return logger
 
 
-class TLSTMLogger:
+class SeqEHRLogger:
     def __init__(self, logger_file=None, logger_level='i'):
         self.lf = logger_file
         self.lvl = logger_level
 
     def get_logger(self):
-        return create_logger("TLSTM", log_level=self.lvl, set_file=self.lf)
+        return create_logger("seqEHR", log_level=self.lvl, set_file=self.lf)

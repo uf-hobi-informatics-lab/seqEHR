@@ -115,8 +115,6 @@ def train(args, model, features, times, labels):
 
 def test(args, model, features, times, labels):
     y_trues, y_preds, gs_labels, pred_labels = _eval(model, features, times, labels)
-    # print(gs_labels[0])
-    # print(pred_labels[0])
     total_acc = accuracy_score(y_trues, y_preds)
     total_auc = roc_auc_score(gs_labels, pred_labels, average='micro')
     total_auc_macro = roc_auc_score(gs_labels, pred_labels, average='macro')
@@ -132,50 +130,25 @@ def main(args):
     torch.manual_seed(13)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(13)
-    conf = "tlstm.conf"
 
-    # load training data
+    model_type = args.model
+    assert model_type in {'lstm', 'tlstm', 'clstm', 'ctlstm'}, \
+        "we support: lstm, tlstm, clstm, and ctlstm but get {}".format(model_type)
+    conf = "{}.conf".format(model_type)
+
+    # training
     if args.do_train:
         args.logger.info("start training...")
-        train_data = pkl_load("../data/tlstm_sync/data_train.pkl")
-        train_elapsed_data = pkl_load("../data/tlstm_sync/elapsed_train.pkl")
-        print(train_elapsed_data[0].shape)
-        train_elapsed_data = [np.reshape(time, [time.shape[0], time.shape[2], time.shape[1]])
-                              for time in train_elapsed_data]
-        print(train_elapsed_data[0].shape)
-        train_labels = pkl_load("../data/tlstm_sync/label_train.pkl")
-        # init config
-        input_dim = train_data[0].shape[2]
-        output_dim = train_labels[0].shape[1]
-        config = TLSTMConfig(input_dim, output_dim, args.hidden_dim, args.fc_dim, args.dropout_rate)
-        # init TLSTM model
-        model = TLSTM(config=config)
-        model.to(args.device)
-        # training
-        train(args, model, train_data, train_elapsed_data, train_labels)
-        # save model and config
-        torch.save(model.state_dict(), Path(args.model_path) / "pytorch_model.bin")
-        pkl_save(config, Path(args.config_path) / conf)
 
-    # load test data
+    # prediction
     if args.do_test:
         args.logger.info("start test...")
-        test_data = pkl_load("../data/tlstm_sync/data_test.pkl")
-        test_elapsed_data = pkl_load("../data/tlstm_sync/elapsed_test.pkl")
-        print(test_elapsed_data[0].shape)
-        test_elapsed_data = [np.reshape(time, [time.shape[0], time.shape[2], time.shape[1]])
-                             for time in test_elapsed_data]
-        print(test_elapsed_data[0].shape)
-        test_labels = pkl_load("../data/tlstm_sync/label_test.pkl")
-        config = pkl_load(Path(args.config_path) / conf)
-        model = TLSTM(config=config)
-        model.load_state_dict(torch.load(Path(args.model_path) / "pytorch_model.bin"))
-        model.to(args.device)
-        test(args, model, test_data, test_elapsed_data, test_labels)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument("--model", default='lstm', type=str,
+                        help="which model used for experiment. We have lstm, tlstm, clstm, and ctlstm")
     parser.add_argument("--train_data", default=None, type=str,
                         help="training data dir, should contain a feature, time, and label pickle files")
     parser.add_argument("--test_data", default=None, type=str,

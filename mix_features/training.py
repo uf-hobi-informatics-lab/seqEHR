@@ -1,16 +1,54 @@
 import torch
 import numpy as np
-from sklearn.metrics import accuracy_score, roc_auc_score
-from sklearn.utils import shuffle
-import sys
-import os
-import argparse
-from pathlib import Path
-from tqdm import trange
-import random
+from sklearn.metrics import accuracy_score, roc_auc_score, auc, roc_curve
 
-from TLSTM.tlstm import TLSTMConfig, TLSTM
-from utils import pkl_save, pkl_load, SeqEHRLogger
+
+class SeqEHRTrainer(object):
+
+    def __init__(self, args):
+        super(SeqEHRTrainer, self).__init__()
+        self.args = args
+
+    def train(self, train_data_loader):
+        pass
+
+    def predict(self, test_data_loader, do_eval=True):
+        """
+        :param test_data_loader: testing data
+        :param do_eval: if true try to run evaluation (GS must be provided)
+        """
+        pass
+
+    def _eval(self):
+        pass
+
+    @staticmethod
+    def _get_auc(self, yt, yp):
+        """
+        :param yt: true labels as numpy array of [[0, 1], [1,0]]
+        :param yp: predicted labels as numpy array of [[0.2, 0.8], [0.8, 0.2]]
+        :return: auc score, sensitivity, specificity, J-index
+        """
+        assert yt.shape[-1] == yp.shape[-1] == 2, \
+            "expected shape of (?,2) " \
+            "but get shape of true labels as {} and predict labels shape as {}".format(yt.shape, yp.shape)
+        auc_score_1 = roc_auc_score(average='micro')
+        # we only need the trues or probs for positive case (label=1)
+        yt, yp = yt[:, 1], yp[:, 1]
+        fpr, tpr, th = roc_curve(yt, yp)
+        auc_score = auc(fpr, tpr)
+        # get specificity and sensitivity
+        opt_idx = np.argmax(tpr - fpr)
+        sensitivity, specificity = tpr[opt_idx], 1 - fpr[opt_idx]
+        J_idx = th[opt_idx]
+
+        return auc_score, auc_score_1, sensitivity, specificity, J_idx
+
+    @staticmethod
+    def _get_acc(self, yt, yp):
+        return accuracy_score(yt, yp)
+
+
 
 
 def _eval(model, features, times, labels):
@@ -110,77 +148,3 @@ def train(args, model, features, times, labels):
             model.zero_grad()
             tr_loss += loss.item()
         args.logger.info("epoch: {}; training loss: {}".format(epoch + 1, tr_loss / (epoch + 1)))
-    test(args, model, features, times, labels)
-
-
-def test(args, model, features, times, labels):
-    y_trues, y_preds, gs_labels, pred_labels = _eval(model, features, times, labels)
-    total_acc = accuracy_score(y_trues, y_preds)
-    total_auc = roc_auc_score(gs_labels, pred_labels, average='micro')
-    total_auc_macro = roc_auc_score(gs_labels, pred_labels, average='macro')
-    args.logger.info("Train Accuracy = {:.3f}".format(total_acc))
-    args.logger.info("Train AUC = {:.3f}".format(total_auc))
-    args.logger.info("Train AUC Macro = {:.3f}".format(total_auc_macro))
-
-
-def main(args):
-    # general set up
-    random.seed(13)
-    np.random.seed(13)
-    torch.manual_seed(13)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(13)
-
-    model_type = args.model
-    assert model_type in {'lstm', 'tlstm', 'clstm', 'ctlstm'}, \
-        "we support: lstm, tlstm, clstm, and ctlstm but get {}".format(model_type)
-    conf = "{}.conf".format(model_type)
-
-    # training
-    if args.do_train:
-        args.logger.info("start training...")
-
-    # prediction
-    if args.do_test:
-        args.logger.info("start test...")
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--model", default='lstm', type=str,
-                        help="which model used for experiment. We have lstm, tlstm, clstm, and ctlstm")
-    parser.add_argument("--train_data", default=None, type=str,
-                        help="training data dir, should contain a feature, time, and label pickle files")
-    parser.add_argument("--test_data", default=None, type=str,
-                        help="test data dir, should contain a feature, time, and label pickle files")
-    parser.add_argument("--model_path", default="./model", type=str, help='where to save the trained model')
-    parser.add_argument("--config_path", default=None, type=str, help='where to save the config file')
-    parser.add_argument("--log_file", default=None, type=str, help='log file')
-    parser.add_argument("--do_train", action='store_true',
-                        help="Whether to run prediction on the test set.")
-    parser.add_argument("--do_test", action='store_true',
-                        help="Whether to run prediction on the test set.")
-    parser.add_argument("--max_grad_norm", default=1.0, type=float, help='values [-mgn, mgn] to clip gradient')
-    parser.add_argument("--weight_decay", default=0.0, type=float, help='weight decay used in AdamW')
-    parser.add_argument("--eps", default=1e-8, type=float, help='eps for AdamW')
-    parser.add_argument("--learning_rate", default=1e-3, type=float, help='learning_rate')
-    parser.add_argument("--dropout_rate", default=0.1, type=float, help='drop probability')
-    parser.add_argument("--train_epochs", default=50, type=int, help='number of epochs for training')
-    parser.add_argument("--hidden_dim", default=100, type=int, help='TLSTM hidden layer size')
-    parser.add_argument("--fc_dim", default=50, type=int, help='fully connected layer size')
-    # TODO: ensemble two TLSTM for handling different data encoding format
-    parser.add_argument("--do_ensemble", default=0, type=int,
-                        help='wether use ensemble model to process OHE + numeric')
-    # TODO: enable mix-percision training
-    parser.add_argument('--fp16', action='store_true',
-                        help="Whether to use 16-bit float precision instead of 32-bit")
-    parser.add_argument("--fp16_opt_level", type=str, default="O1",
-                        help="For fp16: Apex AMP optimization level selected in ['O0', 'O1', 'O2', and 'O3']."
-                             "See details at https://nvidia.github.io/apex/amp.html")
-
-    args = parser.parse_args()
-    args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    args.logger = SeqEHRLogger(logger_file=args.log_file, logger_level='i').get_logger()
-    if args.config_path is None:
-        args.config_path = args.model_path
-    main(args)

@@ -21,11 +21,12 @@ class NonSeqModel(N.Module):
         return self.mlp3(x)
 
 
-class MixModelConfig():
+class MixModelConfig(object):
 
     def __init__(self, seq_input_dim, nonseq_input_dim, dropout_rate=0.1,
                  nonseq_hidden_dim=128, seq_hidden_dim=128, mix_hidden_dim=128,
-                 nonseq_output_dim=64, mix_output_dim=2):
+                 nonseq_output_dim=64, mix_output_dim=2, loss_mode='bin'):
+        super(MixModelConfig, self).__init__()
         self.seq_input_dim = seq_input_dim
         self.seq_hidden_dim = seq_hidden_dim
         self.nonseq_input_dim = nonseq_input_dim
@@ -34,6 +35,7 @@ class MixModelConfig():
         self.mix_hidden_dim = mix_hidden_dim
         self.dropout_rate = dropout_rate
         self.mix_output_dim = mix_output_dim
+        self.loss_mode = loss_mode
 
 
 class MixModel(N.Module):
@@ -42,8 +44,10 @@ class MixModel(N.Module):
         super(MixModel, self).__init__()
 
         if model_type == 'ctlstm':
+            # TLSTM hidden state dim = (B, h)
             self.seq_model = TLSTMCell(config.seq_input_dim, config.seq_hidden_dim)
         elif model_type == 'clstm':
+            # LSTM hidden state dim = (num_layers * num_directions, batch, hidden_size)
             self.seq_model = N.LSTM(config.seq_input_dim, config.seq_hidden_dim)
         else:
             raise NotImplementedError("We only support model ctlsm and clstm but get {}".format(model_type))
@@ -51,27 +55,47 @@ class MixModel(N.Module):
         self.non_seq_model = NonSeqModel(
             config.nonseq_input_dim, config.nonseq_hidden_dim, config.nonseq_output_dim)
 
+        self.model_type = model_type
         self.dropout_rate = config.dropout_rate
         self.merge_layer = N.Linear(config.nonseq_output_dim+config.seq_hidden_dim, config.mix_hidden_dim)
         self.classifier = N.Linear(config.mix_hidden_dim, config.mix_output_dim)
+        self.loss_mode = config.loss_mode
 
-    def forward(self, x, y):
+    def forward(self, x=None, y=None):
         """
-        :param x: x[0] non-seq features, x[1] sequence features
-        :param y: binary labels
+        Since the data will be load with dataloader, batch_size=1 but batch dim still exist
+        :param x: x[0] non-seq features, x[1] sequence features, x[2] time elapse if using TLSTM
+        :param y: binary labels (by default should be float32; when using CrossEntropy we will convert them to Long)
         :return: loss, logits, predicted labels
         """
-        non_seq_x = x[0]
-        seq_x = x[1]
+        non_seq_x = x[0]  # (B, T)
+        non_seq_rep = self.non_seq_model(non_seq_x)
 
-        non_seq_x = self.non_seq_model(non_seq_x)
-        seq_x = self.seq_model(seq_x)
+        seq_x = x[1]  # (B, S, T)
+        if self.model_type == "ctlsm":
+            time = x[2]  # (B, S, 1)
+            _, (seq_rep, _) = self.seq_model(seq_x, time)
+        else:
+            # seq rep dim = (1, B, h)
+            _, (seq_rep, _) = self.seq_model(seq_x)
+            seq_rep = seq_rep.squeeze(0)  # (B, h)
 
-        m_x = torch.cat([non_seq_x, seq_x], dim=1)
-        m_x = F.tanh(F.dropout(self.merge_layer(m_x), p=self.dropout_rate))
+        # non_seq_rep: (B, h)   seq_rep: (B, h)
+        m_rep = torch.cat([non_seq_rep, seq_rep], dim=1)
 
-        logits = self.classifier(m_x)
+        # TODO we need to work on this part of the network: test different non-linear function; test number of layers
+        m_rep = F.tanh(F.dropout(self.merge_layer(m_rep), p=self.dropout_rate))
+
+        logits = self.classifier(m_rep)  # (B, 2)
         pred_prob = F.softmax(logits)
-        loss = F.binary_cross_entropy(pred_prob, y)
+
+        # y dim (B, 2)
+        if self.loss_mode == "bin":
+            loss = F.binary_cross_entropy(pred_prob, y)
+        elif self.loss_mode == "clz":
+            y_hat = y[:, 1].type(torch.long)
+            loss = F.cross_entropy(logits, y_hat)
+        else:
+            raise RuntimeError("loss mode must be bin or clz but get {}".format(self.loss_mode))
 
         return loss, pred_prob, torch.argmax(pred_prob)

@@ -12,8 +12,9 @@ from torch.nn import functional as F
 import numpy as np
 
 
-class TLSTMConfig:
+class TLSTMConfig(object):
     def __init__(self, input_dim, output_dim, hidden_dim, fc_dim, dropoutput_rate):
+        super(TLSTMConfig, self).__init__()
         self.dropout_prob = dropoutput_rate
         self.input_dim = input_dim
         self.output_dim = output_dim

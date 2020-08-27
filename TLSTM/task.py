@@ -10,7 +10,7 @@ from tqdm import trange
 import random
 
 from .tlstm import TLSTMConfig, TLSTM
-from .utils import pkl_save, pkl_load, TLSTMLogger
+from .utils import pkl_save, pkl_load, SeqEHRLogger
 
 
 def _eval(model, features, times, labels):

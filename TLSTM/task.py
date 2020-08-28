@@ -45,12 +45,12 @@ def _eval(model, features, times, labels):
                 pred_labels = logits
                 y_preds = y_pred
                 gs_labels = label
-                y_trues = np.argmax(label, axis=1)
+                y_trues = label[1]
             else:
                 pred_labels = np.concatenate([pred_labels, logits], axis=0)
                 y_preds = np.concatenate([y_preds, y_pred], axis=0)
                 gs_labels = np.concatenate([gs_labels, label], axis=0)
-                y_trues = np.concatenate([y_trues, np.argmax(label, axis=1)], axis=0)
+                y_trues = np.concatenate([y_trues, label[1]], axis=0)
 
     total_acc = accuracy_score(y_trues, y_preds)
     total_auc = roc_auc_score(gs_labels, pred_labels, average='micro')

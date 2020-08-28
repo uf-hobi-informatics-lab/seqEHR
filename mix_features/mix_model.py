@@ -61,13 +61,14 @@ class MixModel(N.Module):
         self.classifier = N.Linear(config.mix_hidden_dim, config.mix_output_dim)
         self.loss_mode = config.loss_mode
 
-    def forward(self, x=None, y=None):
+    def forward(self, x=None):
         """
         Since the data will be load with dataloader, batch_size=1 but batch dim still exist
         :param x: x[0] non-seq features, x[1] sequence features, x[2] time elapse if using TLSTM
         :param y: binary labels (by default should be float32; when using CrossEntropy we will convert them to Long)
         :return: loss, logits, predicted labels
         """
+        y = x[-1]  # the last is always label for input
         non_seq_x = x[0]  # (B, T)
         non_seq_rep = self.non_seq_model(non_seq_x)
 

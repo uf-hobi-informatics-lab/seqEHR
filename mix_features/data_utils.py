@@ -1,9 +1,14 @@
 """
+To generate training and test data, we must include the label
+If in test we do not have true labels (may need to evaluate later),
+    then we need to generate fake labels.
+In this case, evaluate loss will be meaningless.
+
 functions:
-  1. load and save data
-  2. merge non-seq and seq data
-  3. convert data to tensor
-  4. prepare 5-CV
+  1. load and save data (checked)
+  2. merge non-seq and seq data (checked)
+  3. convert data to tensor (checked)
+  4. prepare 5-CV (todo)
 """
 
 from torch import tensor

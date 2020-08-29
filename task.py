@@ -4,7 +4,7 @@ import argparse
 from tqdm import trange
 import random
 
-from TLSTM.utils import SeqEHRLogger, pkl_load
+from utils import SeqEHRLogger, pkl_load
 from training import SeqEHRTrainer
 from data_utils import SeqEHRDataLoader
 

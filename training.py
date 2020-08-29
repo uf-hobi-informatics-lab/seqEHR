@@ -1,8 +1,8 @@
 import torch
 import numpy as np
 from pathlib import Path
-from TLSTM.utils import pkl_save, pkl_load
-from mix_features.mix_model import MixModelConfig, MixModel
+from utils import pkl_save, pkl_load
+from seq_ehr_model import MixModelConfig, MixModel
 from sklearn.metrics import accuracy_score, roc_auc_score, auc, roc_curve
 from tqdm import trange, tqdm
 

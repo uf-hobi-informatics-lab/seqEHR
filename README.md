@@ -1,15 +1,27 @@
 # seqEHR
 > develop deep learning-based models for learning structured EHR as sequence
 
-## TLSTM
+## seqEHR model
+- we develope a mix model which can handle both static features (e.g., demographics) and time-series features (e.g., diagnoses, medication, procedure, labs)
+- we use MLP + TLSTM (or LSTM) as model architecture
+- we have a specific data input format doc at: 
+- The current evaluation will be measured as ROC-AUC, sensitivity, specificity, and accuracy
+
+## specific model desc
+
+### TLSTM
 > TLSTM first published in Patient Subtyping via Time-Aware LSTM Networks", KDD, 2017
 - We re-implement the TLSTM using PyTorch in TLSTM
 - the implementation was validated using the sync data released in the original TLSTM repo. 
 - The results we got on train is AUC of 0.958 and test is AUC of 0.916
 
-## LSTM
-- we use LSTM as baseline compared to TLSTM
+### LSTM
+- This is baseline for comparison purpose
 
-## mix features
-- In EHR, features can be sequence-like (e.g., diagnosis, medication) or non-sequence-like (e.g, demographics)
-- we implement a mix feature model to handle both two types of features
+### LSTM and TLSTM with attention
+- we implement soft-attention mechanism for both LSTM and TLSTM using (global or dyanamic strategy)
+
+### self-attention
+- we implement a self-attention architecture to replace LSTM and TLSTM
+- self-attention proved to be perform better in many NLP tasks over LSTM (seq2seq translation)
+- position enmbedding can be used for encode time variance which is suitable for replace TLSTM

@@ -1,7 +1,6 @@
 import torch
 import numpy as np
-import argparse
-from tqdm import trange
+import argparse 
 import random
 
 from utils import SeqEHRLogger, pkl_load

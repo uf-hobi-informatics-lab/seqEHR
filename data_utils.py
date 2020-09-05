@@ -11,7 +11,7 @@ functions:
   4. prepare 5-CV (todo)
 """
 
-from torch import tensor
+from torch import tensor, float32
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
 
 
@@ -32,7 +32,11 @@ class SeqEHRDataLoader:
             seq.append(each[1])
             label.append(each[2])
 
-        return TensorDataset(tensor(nonseq), tensor(seq), tensor(label))
+        return TensorDataset(
+            tensor(nonseq, dtype=float32),
+            tensor(seq, dtype=float32),
+            tensor(label, dtype=float32)
+        )
 
     def __create_tensor_dataset_with_time(self):
         nonseq, seq, time, label = [], [], [], []
@@ -43,7 +47,12 @@ class SeqEHRDataLoader:
             time.append(each[2])
             label.append(each[3])
 
-        return TensorDataset(tensor(nonseq), tensor(seq), tensor(time), tensor(label))
+        return TensorDataset(
+            tensor(nonseq, dtype=float32),
+            tensor(seq, dtype=float32),
+            tensor(time, dtype=float32),
+            tensor(label, dtype=float32)
+        )
 
     def create_data_loader(self):
         if self.model_type == "ctlstm":

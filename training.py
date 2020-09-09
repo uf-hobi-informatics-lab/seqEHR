@@ -2,6 +2,7 @@ import torch
 import numpy as np
 from pathlib import Path
 from utils import pkl_save, pkl_load
+from config import ModelType, ModelOptimizers
 from seq_ehr_model import MixModelConfig, MixModel
 from sklearn.metrics import accuracy_score, roc_auc_score, auc, roc_curve
 from tqdm import trange, tqdm
@@ -70,7 +71,6 @@ class SeqEHRTrainer(object):
 
         # save model and config
         self._save_model()
-        # TODO do we want to perform evaluate on training set? (no meaning)
 
     def predict(self, test_data_loader, do_eval=True):
         """
@@ -80,8 +80,8 @@ class SeqEHRTrainer(object):
         batch_iter = tqdm(iterable=test_data_loader, desc='Batch', disable=False)
         yt_probs, yp_probs, yt_tags, yp_tags, eval_loss = self._eval(batch_iter)
 
-        acc = self._get_acc(yt_tags, yp_tags)
-        auc_score, auc_score_1, sensitivity, specificity, J_idx = self._get_auc(yt_probs, yp_probs)
+        acc = self._get_acc(yt=yt_tags, yp=yp_tags)
+        auc_score, auc_score_1, sensitivity, specificity, J_idx = self._get_auc(yt=yt_probs, yp=yp_probs)
         eval_res = "accuracy:{:.4f}\nauc_score:{:.4f}\nsensitivity:{:.4f}\nspecificity:{:.4f}\nJ_index:{}"\
             .format(acc, auc_score, sensitivity, specificity, J_idx)
 
@@ -138,7 +138,7 @@ class SeqEHRTrainer(object):
         self.model.to(self.args.device)
 
         # set up optimizer
-        if self.args.optim == "adam":
+        if self.args.optim == ModelOptimizers.ADAM.value:
             # using AdamW implementation
             # may have problem with batch=1 since it is more fit for mini-batch update
             # TODO may add no_decay params
@@ -150,7 +150,7 @@ class SeqEHRTrainer(object):
             #      'weight_decay': 0.0}
             # ]
             self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.args.learning_rate, amsgrad=True)
-        elif self.args.optim == "sgd":
+        elif self.args.optim == ModelOptimizers.SGD.value:
             # using momentum SGD implementation and default momentum is set to 0.9 and use nesterov
             # high variance of the parameter updates; less stable convergence; but work with batch=1
             self.optimizer = torch.optim.SGD(self.model.parameters(), lr=self.args.learning_rate,
@@ -167,7 +167,7 @@ class SeqEHRTrainer(object):
             self.scheduler = get_linear_schedule_with_warmup(self.optimizer, num_warmup_steps=warmup_steps,
                                                              num_training_steps=t_total)
 
-        # mix precision training
+        # mix precision training TODO: update to pytorch naive implementation
         if self.args.fp16:
             try:
                 from apex import amp
@@ -206,7 +206,7 @@ class SeqEHRTrainer(object):
         return yt_probs, yp_probs, yt_tags, yp_tags, eval_loss/global_step
 
     @staticmethod
-    def _get_auc(self, yt, yp):
+    def _get_auc(yt, yp):
         """
         :param yt: true labels as numpy array of [[0, 1], [1,0]]
         :param yp: predicted labels as numpy array of [[0.2, 0.8], [0.8, 0.2]]
@@ -228,5 +228,5 @@ class SeqEHRTrainer(object):
         return auc_score, auc_score_1, sensitivity, specificity, J_idx
 
     @staticmethod
-    def _get_acc(self, yt, yp):
+    def _get_acc(yt, yp):
         return accuracy_score(yt, yp)

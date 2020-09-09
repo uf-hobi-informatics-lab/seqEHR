@@ -6,6 +6,7 @@ import random
 from utils import SeqEHRLogger, pkl_load
 from training import SeqEHRTrainer
 from data_utils import SeqEHRDataLoader
+from config import ModelType, MODEL_TYPE_FLAGS, ModelLossMode, MODEL_LOSS_MODES
 
 
 def main(args):
@@ -16,10 +17,15 @@ def main(args):
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(13)
 
-    model_type = args.model_type
-    assert model_type in {'clstm', 'ctlstm'}, \
-        "we support: lstm, tlstm, clstm, and ctlstm but get {}".format(model_type)
-    conf = "{}.conf".format(model_type)
+    try:
+        args.model_type = MODEL_TYPE_FLAGS[args.model_type]
+    except ValueError:
+        raise RuntimeError("we support: lstm, tlstm, clstm, and ctlstm but get {}".format(args.model_type))
+
+    try:
+        args.loss_mode = MODEL_LOSS_MODES[args.loss_mode]
+    except ValueError:
+        raise RuntimeError("we support: lstm, tlstm, clstm, and ctlstm but get {}".format(args.loss_mode))
 
     # load data
     # if using TLSMT the data have 4 components as non-seq, seq, time elapse, label
@@ -32,8 +38,8 @@ def main(args):
     args.nonseq_input_dim = train_data[0].shape
     args.seq_input_dim = train_data[1].shape
     # create data loader (pin_memory is set to True)
-    train_data_loader = SeqEHRDataLoader(train_data, model_type, task='train').create_data_loader()
-    test_data_loader = SeqEHRDataLoader(test_data, model_type, task='test').create_data_loader()
+    train_data_loader = SeqEHRDataLoader(train_data, args.model_type, task='train').create_data_loader()
+    test_data_loader = SeqEHRDataLoader(test_data, args.model_type, task='test').create_data_loader()
     args.total_step = len(train_data_loader)
 
     # init task runner
@@ -91,7 +97,7 @@ if __name__ == '__main__':
                         help='steps before logging after run training. If -1, log every epoch')
     parser.add_argument("--mix_output_dim", default=64, type=int, help='mix model output dim')
     parser.add_argument("--loss_mode", default='bin', type=str,
-                        help='using "bin" for Softmax+BCELoss or "clz" for CrossEntropyLoss')
+                        help='using "bin" for Softmax+BCELoss or "mul" for CrossEntropyLoss')
     # TODO: enable mix-percision training
     parser.add_argument('--fp16', action='store_true',
                         help="Whether to use 16-bit float precision instead of 32-bit")

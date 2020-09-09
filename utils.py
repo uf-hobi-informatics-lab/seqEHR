@@ -2,6 +2,17 @@ import logging
 import pickle
 
 
+def load_text(ifn):
+    with open(ifn, "r") as f:
+        txt = f.read()
+    return txt
+
+
+def save_text(text, ofn):
+    with open(ofn, "w") as f:
+        f.write(text)
+
+
 def pkl_load(fn):
     with open(fn, "rb") as f:
         data = pickle.load(f)

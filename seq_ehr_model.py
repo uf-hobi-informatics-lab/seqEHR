@@ -2,6 +2,7 @@ from TLSTM.tlstm import TLSTMCell
 import torch
 import torch.nn as N
 import torch.nn.functional as F
+from config import ModelType, ModelLossMode
 
 
 class NonSeqModel(N.Module):
@@ -25,7 +26,7 @@ class MixModelConfig(object):
 
     def __init__(self, seq_input_dim, nonseq_input_dim, dropout_rate=0.1,
                  nonseq_hidden_dim=128, seq_hidden_dim=128, mix_hidden_dim=128,
-                 nonseq_output_dim=64, mix_output_dim=2, loss_mode='bin'):
+                 nonseq_output_dim=64, mix_output_dim=2, loss_mode=ModelLossMode.BIN):
         super(MixModelConfig, self).__init__()
         self.seq_input_dim = seq_input_dim
         self.seq_hidden_dim = seq_hidden_dim
@@ -37,20 +38,26 @@ class MixModelConfig(object):
         self.mix_output_dim = mix_output_dim
         self.loss_mode = loss_mode
 
+    def __str__(self):
+        s = ""
+        for k, v in self.__dict__.items():
+            s += "{}={}\n".format(k, v)
+        return s
+
 
 class MixModel(N.Module):
 
-    def __init__(self, config, model_type='ctlsm'):
+    def __init__(self, config, model_type=ModelType.M_LSTM):
         super(MixModel, self).__init__()
 
-        if model_type == 'ctlstm':
+        if model_type is ModelType.M_TLSTM:
             # TLSTM hidden state dim = (B, h)
             self.seq_model = TLSTMCell(config.seq_input_dim, config.seq_hidden_dim)
-        elif model_type == 'clstm':
+        elif model_type is ModelType.M_LSTM:
             # LSTM hidden state dim = (num_layers * num_directions, batch, hidden_size)
             self.seq_model = N.LSTM(config.seq_input_dim, config.seq_hidden_dim)
         else:
-            raise NotImplementedError("We only support model ctlsm and clstm but get {}".format(model_type))
+            raise NotImplementedError("We only support model ctlsm and clstm but get {}".format(model_type.value))
 
         self.non_seq_model = NonSeqModel(
             config.nonseq_input_dim, config.nonseq_hidden_dim, config.nonseq_output_dim)
@@ -73,7 +80,7 @@ class MixModel(N.Module):
         non_seq_rep = self.non_seq_model(non_seq_x)
 
         seq_x = x[1]  # (B, S, T)
-        if self.model_type == "ctlsm":
+        if self.model_type is ModelType.M_TLSTM:
             time = x[2]  # (B, S, 1)
             _, (seq_rep, _) = self.seq_model(seq_x, time)
         else:
@@ -85,18 +92,18 @@ class MixModel(N.Module):
         m_rep = torch.cat([non_seq_rep, seq_rep], dim=1)
 
         # TODO we need to work on this part of the network: test different non-linear function; test number of layers
-        m_rep = F.tanh(F.dropout(self.merge_layer(m_rep), p=self.dropout_rate))
+        m_rep = torch.tanh(F.dropout(self.merge_layer(m_rep), p=self.dropout_rate))
 
         logits = self.classifier(m_rep)  # (B, 2)
-        pred_prob = F.softmax(logits)
+        pred_prob = F.softmax(logits, dim=-1)
 
         # y dim (B, 2)
-        if self.loss_mode == "bin":
+        if self.loss_mode is ModelLossMode.BIN:
             loss = F.binary_cross_entropy(pred_prob, y)
-        elif self.loss_mode == "clz":
-            y_hat = y[:, 1].type(torch.long)
+        elif self.loss_mode is ModelLossMode.MUL:
+            y_hat = y.type(torch.long)
             loss = F.cross_entropy(logits, y_hat)
         else:
-            raise RuntimeError("loss mode must be bin or clz but get {}".format(self.loss_mode))
+            raise NotImplementedError("loss mode only support bin or mul but get {}".format(self.loss_mode.value))
 
-        return loss, pred_prob, torch.argmax(pred_prob)
+        return loss, pred_prob, torch.argmax(pred_prob, dim=-1)

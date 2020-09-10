@@ -13,6 +13,7 @@ functions:
 
 from torch import tensor, float32
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
+from config import ModelType
 
 
 class SeqEHRDataLoader:
@@ -55,7 +56,7 @@ class SeqEHRDataLoader:
         )
 
     def create_data_loader(self):
-        if self.model_type == "ctlstm":
+        if self.model_type is ModelType.M_TLSTM:
             dataset = self.__create_tensor_dataset_with_time()
         else:
             dataset = self.__create_tensor_dataset()

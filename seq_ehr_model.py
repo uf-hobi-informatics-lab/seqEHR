@@ -38,6 +38,12 @@ class MixModelConfig(object):
         self.mix_output_dim = mix_output_dim
         self.loss_mode = loss_mode
 
+    def __str__(self):
+        s = ""
+        for k, v in self.__dict__.items():
+            s += "{}={}\n".format(k, v)
+        return s
+
 
 class MixModel(N.Module):
 
@@ -51,7 +57,7 @@ class MixModel(N.Module):
             # LSTM hidden state dim = (num_layers * num_directions, batch, hidden_size)
             self.seq_model = N.LSTM(config.seq_input_dim, config.seq_hidden_dim)
         else:
-            raise NotImplementedError("We only support model ctlsm and clstm but get {}".format(model_type))
+            raise NotImplementedError("We only support model ctlsm and clstm but get {}".format(model_type.value))
 
         self.non_seq_model = NonSeqModel(
             config.nonseq_input_dim, config.nonseq_hidden_dim, config.nonseq_output_dim)
@@ -86,18 +92,18 @@ class MixModel(N.Module):
         m_rep = torch.cat([non_seq_rep, seq_rep], dim=1)
 
         # TODO we need to work on this part of the network: test different non-linear function; test number of layers
-        m_rep = F.tanh(F.dropout(self.merge_layer(m_rep), p=self.dropout_rate))
+        m_rep = torch.tanh(F.dropout(self.merge_layer(m_rep), p=self.dropout_rate))
 
         logits = self.classifier(m_rep)  # (B, 2)
-        pred_prob = F.softmax(logits)
+        pred_prob = F.softmax(logits, dim=-1)
 
         # y dim (B, 2)
         if self.loss_mode is ModelLossMode.BIN:
             loss = F.binary_cross_entropy(pred_prob, y)
         elif self.loss_mode is ModelLossMode.MUL:
-            y_hat = y[:, 1].type(torch.long)
+            y_hat = y.type(torch.long)
             loss = F.cross_entropy(logits, y_hat)
         else:
             raise NotImplementedError("loss mode only support bin or mul but get {}".format(self.loss_mode.value))
 
-        return loss, pred_prob, torch.argmax(pred_prob)
+        return loss, pred_prob, torch.argmax(pred_prob, dim=-1)

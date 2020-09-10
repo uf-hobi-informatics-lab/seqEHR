@@ -34,10 +34,10 @@ def main(args):
     # The data should be in format as tuple of list of numpy arrays as [(np.array, np.array, np.array, np.array), ...]
     train_data = pkl_load(args.train_data_path)
     test_data = pkl_load(args.test_data_path)
-    # collect input dim for model init (batch, seq, dim)
-    args.nonseq_input_dim = train_data[0].shape
-    args.seq_input_dim = train_data[1].shape
-    # create data loader (pin_memory is set to True)
+    # collect input dim for model init (seq, dim)
+    args.nonseq_input_dim = train_data[0][0].shape
+    args.seq_input_dim = train_data[0][1].shape
+    # create data loader (pin_memory is set to True) -> (B, S, T)
     train_data_loader = SeqEHRDataLoader(train_data, args.model_type, task='train').create_data_loader()
     test_data_loader = SeqEHRDataLoader(test_data, args.model_type, task='test').create_data_loader()
     args.total_step = len(train_data_loader)
@@ -65,20 +65,18 @@ if __name__ == '__main__':
     parser.add_argument("--test_data_path", default=None, type=str,
                         help="test data dir, should contain a feature, time, and label pickle files")
     parser.add_argument("--new_model_path", default="./model", type=str, help='where to save the trained model')
-    parser.add_argument("--config_path", default=None, type=str, help='where to save the config file')
     parser.add_argument("--log_file", default=None, type=str, help='log file')
     parser.add_argument("--result_path", default=None, type=str,
                         help='path to save raw and evaluation results; if none, report only evaluations by log')
     parser.add_argument("--do_train", action='store_true',
                         help="Whether to run training.")
     parser.add_argument("--do_eval", action='store_true',
-                        help="Whether to run evaluation on test.")
+                        help="""Whether to run evaluation on test. 
+                        Using this flag, the labels for the test set must be real labels""")
     parser.add_argument("--do_test", action='store_true',
                         help="Whether to run prediction on the test set.")
     parser.add_argument("--do_warmup", action='store_true',
                         help="Whether to use learning rate warm up strategy")
-    parser.add_argument("--has_test_label", default=True, type=bool,
-                        help="If the test data have the ground truth labels")
     parser.add_argument("--optim", default="adam", type=str, help='the optimizer used for training')
     parser.add_argument("--max_grad_norm", default=1.0, type=float, help='values [-mgn, mgn] to clip gradient')
     parser.add_argument("--weight_decay", default=0.0, type=float, help='weight decay used in AdamW')
@@ -95,7 +93,7 @@ if __name__ == '__main__':
                         help='representation dim for nonseq features')
     parser.add_argument("--log_step", default=-1, type=int,
                         help='steps before logging after run training. If -1, log every epoch')
-    parser.add_argument("--mix_output_dim", default=64, type=int, help='mix model output dim')
+    parser.add_argument("--mix_output_dim", default=2, type=int, help='mix model output dim')
     parser.add_argument("--loss_mode", default='bin', type=str,
                         help='using "bin" for Softmax+BCELoss or "mul" for CrossEntropyLoss')
     # TODO: enable mix-percision training
@@ -108,6 +106,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     args.logger = SeqEHRLogger(logger_file=args.log_file, logger_level='i').get_logger()
-    if args.config_path is None:
-        args.config_path = args.new_model_path
     main(args)

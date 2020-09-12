@@ -2,8 +2,8 @@
 export CUDA_VISIBLE_DEVICES=-1
 
 # # define data path
-train_data='./data/hdp_sample_data/new_labeled_train_cbp.pkl'
-test_data='./data/hdp_sample_data/new_labeled_test_cbp.pkl'
+train_data='./data/multi_observ_data/new_labeled_train_cbp.pkl'
+test_data='./data/multi_observ_data/new_labeled_test_cbp.pkl'
 new_model='./model/hdp'
 res_output='./result/hdp'
 log='log.txt'

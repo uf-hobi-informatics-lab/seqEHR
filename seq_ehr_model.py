@@ -89,7 +89,14 @@ class MixModel(N.Module):
             seq_rep = seq_rep.squeeze(0)  # (B, h)
 
         # non_seq_rep: (B, h)   seq_rep: (B, h)
-        m_rep = torch.cat([non_seq_rep, seq_rep], dim=1)
+
+        if seq_x.shape[1]==1:
+            m_rep = torch.cat([non_seq_rep, seq_rep], dim=1)
+        elif seq_x.shape[1]==2:
+            # print(non_seq_rep.shape)
+            # print(seq_rep[1].unsqueeze(0).shape)
+            seq_rep = (seq_rep[0, :].unsqueeze(0) + seq_rep[1, :].unsqueeze(0))
+            m_rep = torch.cat([non_seq_rep, seq_rep], dim=1)
 
         # TODO we need to work on this part of the network: test different non-linear function; test number of layers
         m_rep = torch.tanh(F.dropout(self.merge_layer(m_rep), p=self.dropout_rate))

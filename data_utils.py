@@ -10,7 +10,7 @@ functions:
   3. convert data to tensor (checked)
   4. prepare 5-CV (todo)
 """
-
+import torch
 from torch import tensor, float32
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
 from config import ModelType
@@ -30,12 +30,14 @@ class SeqEHRDataLoader:
 
         for each in self.data:
             nonseq.append(each[0])
-            seq.append(each[1])
+            seq.append(torch.FloatTensor(each[1]))
+            print(seq[0].shape)
             label.append(each[2])
+        padded_sequence = torch.nn.utils.rnn.pad_sequence(seq, batch_first=True)
 
         return TensorDataset(
             tensor(nonseq, dtype=float32),
-            tensor(seq, dtype=float32),
+            tensor(padded_sequence, dtype=float32),
             tensor(label, dtype=float32)
         )
 

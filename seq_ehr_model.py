@@ -99,7 +99,8 @@ class MixModel(N.Module):
 
         # y dim (B, 2)
         if self.loss_mode is ModelLossMode.BIN:
-            loss = F.binary_cross_entropy(pred_prob, y)
+            # loss = F.binary_cross_entropy(pred_prob, y)
+            loss = F.binary_cross_entropy_with_logits(logits, y)
         elif self.loss_mode is ModelLossMode.MUL:
             y_hat = y.type(torch.long)
             loss = F.cross_entropy(logits, y_hat)

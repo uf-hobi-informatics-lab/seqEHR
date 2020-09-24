@@ -26,7 +26,7 @@ class MixModelConfig(object):
 
     def __init__(self, seq_input_dim, nonseq_input_dim, dropout_rate=0.1,
                  nonseq_hidden_dim=128, seq_hidden_dim=128, mix_hidden_dim=128,
-                 nonseq_output_dim=64, mix_output_dim=2, loss_mode=ModelLossMode.BIN):
+                 nonseq_output_dim=64, mix_output_dim=2, loss_mode=ModelLossMode.BIN, **kwargs):
         super(MixModelConfig, self).__init__()
         self.seq_input_dim = seq_input_dim
         self.seq_hidden_dim = seq_hidden_dim
@@ -37,6 +37,12 @@ class MixModelConfig(object):
         self.dropout_rate = dropout_rate
         self.mix_output_dim = mix_output_dim
         self.loss_mode = loss_mode
+
+        for key, value in kwargs.items():
+            try:
+                setattr(self, key, value)
+            except AttributeError as err:
+                raise Warning("Can't set {} with value {} for {}".format(key, value, self))
 
     def __str__(self):
         s = ""
@@ -92,7 +98,8 @@ class MixModel(N.Module):
         m_rep = torch.cat([non_seq_rep, seq_rep], dim=1)
 
         # TODO we need to work on this part of the network: test different non-linear function; test number of layers
-        m_rep = torch.tanh(F.dropout(self.merge_layer(m_rep), p=self.dropout_rate))
+        raw_rep = self.merge_layer(m_rep)
+        m_rep = torch.tanh(F.dropout(raw_rep, p=self.dropout_rate))
 
         logits = self.classifier(m_rep)  # (B, 2)
         pred_prob = F.softmax(logits, dim=-1)
@@ -107,4 +114,4 @@ class MixModel(N.Module):
         else:
             raise NotImplementedError("loss mode only support bin or mul but get {}".format(self.loss_mode.value))
 
-        return loss, pred_prob, torch.argmax(pred_prob, dim=-1)
+        return loss, pred_prob, torch.argmax(pred_prob, dim=-1), m_rep

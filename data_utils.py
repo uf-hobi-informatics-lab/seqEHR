@@ -11,19 +11,20 @@ functions:
   4. prepare 5-CV (todo)
 """
 
-from torch import tensor, float32
+from torch import tensor, float32, long
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
-from config import ModelType
+from config import ModelType, ModelLossMode
 
 
 class SeqEHRDataLoader:
 
-    def __init__(self, data, model_type, task='train'):
-        # TODO switch to pad_packed_seq and pack_padded_seq then we can use batch size
+    def __init__(self, data, model_type, loss_mode, batch_size, task='train'):
         self.batch_size = 1
         self.data = data
         self.task = task
         self.model_type = model_type
+        self.batch_size = batch_size
+        self.loss_mode = loss_mode
 
     def __create_tensor_dataset(self):
         nonseq, seq, label = [], [], []
@@ -33,11 +34,18 @@ class SeqEHRDataLoader:
             seq.append(each[1])
             label.append(each[2])
 
-        return TensorDataset(
-            tensor(nonseq, dtype=float32),
-            tensor(seq, dtype=float32),
-            tensor(label, dtype=float32)
-        )
+        if self.loss_mode is ModelLossMode.BIN:
+            return TensorDataset(
+                tensor(nonseq, dtype=float32),
+                tensor(seq, dtype=float32),
+                tensor(label, dtype=float32)
+            )
+        else:
+            return TensorDataset(
+                tensor(nonseq, dtype=float32),
+                tensor(seq, dtype=float32),
+                tensor(label, dtype=long)
+            )
 
     def __create_tensor_dataset_with_time(self):
         nonseq, seq, time, label = [], [], [], []
@@ -48,12 +56,20 @@ class SeqEHRDataLoader:
             time.append(each[2])
             label.append(each[3])
 
-        return TensorDataset(
-            tensor(nonseq, dtype=float32),
-            tensor(seq, dtype=float32),
-            tensor(time, dtype=float32),
-            tensor(label, dtype=float32)
-        )
+        if self.loss_mode is ModelLossMode.BIN:
+            return TensorDataset(
+                tensor(nonseq, dtype=float32),
+                tensor(seq, dtype=float32),
+                tensor(time, dtype=float32),
+                tensor(label, dtype=float32)
+            )
+        else:
+            return TensorDataset(
+                tensor(nonseq, dtype=float32),
+                tensor(seq, dtype=float32),
+                tensor(time, dtype=float32),
+                tensor(label, dtype=long)
+            )
 
     def create_data_loader(self):
         if self.model_type is ModelType.M_TLSTM:

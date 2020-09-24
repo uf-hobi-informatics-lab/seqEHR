@@ -10,7 +10,7 @@ from config import ModelType, MODEL_TYPE_FLAGS, ModelLossMode, MODEL_LOSS_MODES
 
 
 def main(args):
-    # general set up
+    # general set up (random see for reproducibility, we default seed as 13)
     random.seed(13)
     np.random.seed(13)
     torch.manual_seed(13)
@@ -37,9 +37,12 @@ def main(args):
     # collect input dim for model init (seq, dim)
     args.nonseq_input_dim = train_data[0][0].shape
     args.seq_input_dim = train_data[0][1].shape
+
     # create data loader (pin_memory is set to True) -> (B, S, T)
-    train_data_loader = SeqEHRDataLoader(train_data, args.model_type, task='train').create_data_loader()
-    test_data_loader = SeqEHRDataLoader(test_data, args.model_type, task='test').create_data_loader()
+    train_data_loader = SeqEHRDataLoader(
+        train_data, args.model_type, args.loss_mode, args.batch_size, task='train').create_data_loader()
+    test_data_loader = SeqEHRDataLoader(
+        test_data, args.model_type, args.loss_mode, args.batch_size, task='test').create_data_loader()
     args.total_step = len(train_data_loader)
 
     # init task runner
@@ -94,6 +97,7 @@ if __name__ == '__main__':
     parser.add_argument("--log_step", default=-1, type=int,
                         help='steps before logging after run training. If -1, log every epoch')
     parser.add_argument("--mix_output_dim", default=2, type=int, help='mix model output dim')
+    parser.add_argument("--batch_size", default=1, type=int, help='how many patients data we feed in each iteration')
     parser.add_argument("--loss_mode", default='bin', type=str,
                         help='using "bin" for Softmax+BCELoss or "mul" for CrossEntropyLoss')
     # TODO: enable mix-percision training

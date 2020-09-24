@@ -45,7 +45,7 @@ class SeqEHRTrainer(object):
                 # load batch to GPU or CPU
                 batch = tuple(b.to(self.args.device) for b in batch)
                 # the last element is label
-                loss, _, _ = self.model(batch)
+                loss, _, _, _ = self.model(batch)
 
                 if self.args.fp16:
                     with self.amp.scale_loss(loss, self.optimizer) as scaled_loss:
@@ -80,7 +80,7 @@ class SeqEHRTrainer(object):
         :param do_eval: if true try to run evaluation (GS must be provided)
         """
         batch_iter = tqdm(iterable=test_data_loader, desc='Batch', disable=False)
-        yt_probs, yp_probs, yt_tags, yp_tags, eval_loss = self._eval(batch_iter)
+        yt_probs, yp_probs, yt_tags, yp_tags, eval_loss, representations = self._eval(batch_iter)
 
         if do_eval:
             if self.args.loss_mode is ModelLossMode.BIN:
@@ -195,11 +195,11 @@ class SeqEHRTrainer(object):
         self.model.eval()
         eval_loss = 0.
         global_step = 0
-        yt_probs, yp_probs, yt_tags, yp_tags = None, None, None, None
+        yt_probs, yp_probs, yt_tags, yp_tags, reps = None, None, None, None, None
         for step, batch in enumerate(batch_iter):
             batch = tuple(b.to(self.args.device) for b in batch)
             with torch.no_grad():
-                loss, pred_probs, pred_tags = self.model(batch)
+                loss, pred_probs, pred_tags, rep = self.model(batch)
                 eval_loss += loss.item()
                 global_step += 1
 
@@ -207,19 +207,22 @@ class SeqEHRTrainer(object):
                 pred_tags = pred_tags.detach().cpu().numpy()
                 true_probs = batch[-1].detach().cpu().numpy()
                 true_tags = np.argmax(true_probs, axis=-1)
+                rep = rep.detach().cpu().numpy()
 
                 if yt_probs is None:
                     yt_probs = true_probs
                     yp_probs = pred_probs
                     yt_tags = true_tags
                     yp_tags = pred_tags
+                    reps = rep
                 else:
                     yp_probs = np.concatenate([yp_probs, pred_probs], axis=0)
                     yp_tags = np.concatenate([yp_tags, pred_tags], axis=0)
                     yt_probs = np.concatenate([yt_probs, true_probs], axis=0)
                     yt_tags = np.concatenate([yt_tags, true_tags], axis=0)
+                    reps = np.concatenate([reps, rep], axis=0)
 
-        return yt_probs, yp_probs, yt_tags, yp_tags, eval_loss/global_step
+        return yt_probs, yp_probs, yt_tags, yp_tags, eval_loss/global_step, reps
 
     @staticmethod
     def _get_auc(yt, yp):

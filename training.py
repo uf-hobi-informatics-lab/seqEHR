@@ -45,22 +45,28 @@ class SeqEHRTrainer(object):
                 # load batch to GPU or CPU
                 batch = tuple(b.to(self.args.device) for b in batch)
                 # the last element is label
-                loss, _, _ = self.model(batch)
+                if self.args.fp16:
+                    with self.autocast:
+                        loss, _, _, _ = self.model(batch)
+                else:
+                    loss, _, _, _ = self.model(batch)
 
                 if self.args.fp16:
-                    with self.amp.scale_loss(loss, self.optimizer) as scaled_loss:
-                        scaled_loss.backward()
-                    torch.nn.utils.clip_grad_norm_(self.amp.master_params(self.optimizer), self.args.max_grad_norm)
+                    loss = self.scaler.scale(loss)
+                    loss.backward()
+                    self.scaler.unscale_(self.optimizer)
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.max_grad_norm)
+                    self.scaler.step(self.optimizer)
+                    self.scaler.update()
                 else:
                     loss.backward()
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.max_grad_norm)
-                tr_loss += loss.item()
-
-                self.optimizer.step()
+                    self.optimizer.step()
 
                 if self.args.do_warmup:
                     self.scheduler.step()
 
+                tr_loss += loss.item()
                 global_step += 1
 
                 if self.args.log_step > 0 and (step + 1) % self.args.log_step == 0:
@@ -80,37 +86,48 @@ class SeqEHRTrainer(object):
         :param do_eval: if true try to run evaluation (GS must be provided)
         """
         batch_iter = tqdm(iterable=test_data_loader, desc='Batch', disable=False)
-        yt_probs, yp_probs, yt_tags, yp_tags, eval_loss = self._eval(batch_iter)
+        yt_probs, yp_probs, yt_tags, yp_tags, eval_loss, representations = self._eval(batch_iter)
+
+        res_path = None
+        if self.args.result_path:
+            self.args.logger.info("Results are reported in {}".format(self.args.result_path))
+            res_path = Path(self.args.result_path)
+            res_path.mkdir(parents=True, exist_ok=True)
+            raw_res_fn = res_path / "raw_results.tsv"
+
+            with open(raw_res_fn, "w") as f:
+                header = "\t".join(
+                    ["\t".join([str(i) for i in range(len(yp_probs[0]))]), "predict_label", "true_label"])
+                f.write(header + "\n")
+                for each in zip(yp_probs, yp_tags, yt_tags):
+                    probs = "\t".join([str(e) for e in each[0]])
+                    line = "\t".join([probs, str(each[1]), str(each[2])]) + "\n"
+                    f.write(line)
 
         if do_eval:
             if self.args.loss_mode is ModelLossMode.BIN:
                 # BIN use acc and ROC-AUC
                 acc = self._get_acc(yt=yt_tags, yp=yp_tags)
                 auc_score, auc_score_1, sensitivity, specificity, J_idx = self._get_auc(yt=yt_probs, yp=yp_probs)
-                eval_res = "accuracy:{:.4f}\nauc_score:{:.4f}\nsensitivity:{:.4f}\nspecificity:{:.4f}\nJ_index:{}"\
+                eval_res = "accuracy:{:.4f}\nauc_score:{:.4f}\nsensitivity:{:.4f}\nspecificity:{:.4f}\nJ_index:{}\n"\
                     .format(acc, auc_score, sensitivity, specificity, J_idx)
             else:
                 # ModelLossMode.MUL use acc and PRF
                 acc = self._get_acc(yt=yt_tags, yp=yp_tags)
                 pre, rec, f1 = self._get_prf(yt=yt_tags, yp=yp_tags)
-                eval_res = "accuracy:{:.4f}\nprecision:{:.4f}\nrecall:{:.4f}\nF1-micro:{:.4f}"\
+                eval_res = "accuracy:{:.4f}\nprecision:{:.4f}\nrecall:{:.4f}\nF1-micro:{:.4f}\n"\
                     .format(acc, pre, rec, f1)
 
-            if self.args.result_path:
-                self.args.logger.info("Results are reported in {}".format(self.args.result_path))
-                res_path = Path(self.args.result_path)
-                res_path.mkdir(parents=True, exist_ok=True)
-                raw_res_fn = res_path / "raw_results.tsv"
+                try:
+                    auc_score, auc_score_1, sensitivity, specificity, J_idx = self._get_auc(yt=yt_probs, yp=yp_probs)
+                    eval_res += \
+                        "accuracy:{:.4f}\nauc_score:{:.4f}\nsensitivity:{:.4f}\nspecificity:{:.4f}\nJ_index:{}\n" \
+                        .format(acc, auc_score, sensitivity, specificity, J_idx)
+                except Exception:
+                    pass
+
+            if res_path:
                 eval_metric_fn = res_path / "evaluation.txt"
-
-                with open(raw_res_fn, "w") as f:
-                    header = "\t".join(["\t".join([str(i) for i in range(len(yp_probs[0]))]), "predict_label", "true_label"])
-                    f.write(header + "\n")
-                    for each in zip(yp_probs, yp_tags, yt_tags):
-                        probs = "\t".join([str(e) for e in each[0]])
-                        line = "\t".join([probs, str(each[1]), str(each[2])]) + "\n"
-                        f.write(line)
-
                 with open(eval_metric_fn, "w") as f:
                     f.write(eval_res)
 
@@ -181,25 +198,26 @@ class SeqEHRTrainer(object):
             self.scheduler = get_linear_schedule_with_warmup(self.optimizer, num_warmup_steps=warmup_steps,
                                                              num_training_steps=t_total)
 
-        # mix precision training TODO: update to pytorch naive implementation
+        # mix precision training
+        self.scaler = None
+        self.autocast = None
         if self.args.fp16:
             try:
-                from apex import amp
-                self.amp = amp
-            except ImportError:
-                raise ImportError("Please install apex from https://www.github.com/nvidia/apex to use fp16 training.")
-            self.model, self.optimizer = self.amp.initialize(self.model, self.optimizer,
-                                                             opt_level=self.args.fp16_opt_level)
+                self.autocast = torch.cuda.amp.autocast()
+                self.scaler = torch.cuda.amp.GradScaler()
+            except Exception:
+                raise ImportError("You need to update to PyTorch 1.6, the current PyTorch version is {}"
+                                  .format(torch.__version__))
 
     def _eval(self, batch_iter):
         self.model.eval()
         eval_loss = 0.
         global_step = 0
-        yt_probs, yp_probs, yt_tags, yp_tags = None, None, None, None
+        yt_probs, yp_probs, yt_tags, yp_tags, reps = None, None, None, None, None
         for step, batch in enumerate(batch_iter):
             batch = tuple(b.to(self.args.device) for b in batch)
             with torch.no_grad():
-                loss, pred_probs, pred_tags = self.model(batch)
+                loss, pred_probs, pred_tags, rep = self.model(batch)
                 eval_loss += loss.item()
                 global_step += 1
 
@@ -207,19 +225,22 @@ class SeqEHRTrainer(object):
                 pred_tags = pred_tags.detach().cpu().numpy()
                 true_probs = batch[-1].detach().cpu().numpy()
                 true_tags = np.argmax(true_probs, axis=-1)
+                rep = rep.detach().cpu().numpy()
 
                 if yt_probs is None:
                     yt_probs = true_probs
                     yp_probs = pred_probs
                     yt_tags = true_tags
                     yp_tags = pred_tags
+                    reps = rep
                 else:
                     yp_probs = np.concatenate([yp_probs, pred_probs], axis=0)
                     yp_tags = np.concatenate([yp_tags, pred_tags], axis=0)
                     yt_probs = np.concatenate([yt_probs, true_probs], axis=0)
                     yt_tags = np.concatenate([yt_tags, true_tags], axis=0)
+                    reps = np.concatenate([reps, rep], axis=0)
 
-        return yt_probs, yp_probs, yt_tags, yp_tags, eval_loss/global_step
+        return yt_probs, yp_probs, yt_tags, yp_tags, eval_loss/global_step, reps
 
     @staticmethod
     def _get_auc(yt, yp):

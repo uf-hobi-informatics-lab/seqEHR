@@ -92,7 +92,8 @@ class MixModel(N.Module):
         else:
             # seq rep dim = (1, B, h)
             _, (seq_rep, _) = self.seq_model(seq_x)
-            seq_rep = seq_rep.squeeze(0)  # (B, h)
+            # (B, h)
+            seq_rep = seq_rep.squeeze(0)
 
         # non_seq_rep: (B, h)   seq_rep: (B, h)
         m_rep = torch.cat([non_seq_rep, seq_rep], dim=1)
@@ -101,16 +102,18 @@ class MixModel(N.Module):
         raw_rep = self.merge_layer(m_rep)
         m_rep = torch.tanh(F.dropout(raw_rep, p=self.dropout_rate))
 
-        logits = self.classifier(m_rep)  # (B, 2)
+        # (B, 2)
+        logits = self.classifier(m_rep)
         pred_prob = F.softmax(logits, dim=-1)
 
-        # y dim (B, 2)
         if self.loss_mode is ModelLossMode.BIN:
+            # y dim (B, 2)
             loss = F.binary_cross_entropy(pred_prob, y)
             # loss = F.binary_cross_entropy_with_logits(logits, y)
         elif self.loss_mode is ModelLossMode.MUL:
-            y_hat = y.type(torch.long)
-            loss = F.cross_entropy(logits, y_hat)
+            # y dim (B, 1)
+            # y_hat = y.type(torch.long)
+            loss = F.cross_entropy(logits, y)
         else:
             raise NotImplementedError("loss mode only support bin or mul but get {}".format(self.loss_mode.value))
 

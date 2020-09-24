@@ -45,22 +45,28 @@ class SeqEHRTrainer(object):
                 # load batch to GPU or CPU
                 batch = tuple(b.to(self.args.device) for b in batch)
                 # the last element is label
-                loss, _, _, _ = self.model(batch)
+                if self.args.fp16:
+                    with self.autocast:
+                        loss, _, _, _ = self.model(batch)
+                else:
+                    loss, _, _, _ = self.model(batch)
 
                 if self.args.fp16:
-                    with self.amp.scale_loss(loss, self.optimizer) as scaled_loss:
-                        scaled_loss.backward()
-                    torch.nn.utils.clip_grad_norm_(self.amp.master_params(self.optimizer), self.args.max_grad_norm)
+                    loss = self.scaler.scale(loss)
+                    loss.backward()
+                    self.scaler.unscale_(self.optimizer)
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.max_grad_norm)
+                    self.scaler.step(self.optimizer)
+                    self.scaler.update()
                 else:
                     loss.backward()
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.max_grad_norm)
-                tr_loss += loss.item()
-
-                self.optimizer.step()
+                    self.optimizer.step()
 
                 if self.args.do_warmup:
                     self.scheduler.step()
 
+                tr_loss += loss.item()
                 global_step += 1
 
                 if self.args.log_step > 0 and (step + 1) % self.args.log_step == 0:
@@ -181,15 +187,16 @@ class SeqEHRTrainer(object):
             self.scheduler = get_linear_schedule_with_warmup(self.optimizer, num_warmup_steps=warmup_steps,
                                                              num_training_steps=t_total)
 
-        # mix precision training TODO: update to pytorch naive implementation
+        # mix precision training
+        self.scaler = None
+        self.autocast = None
         if self.args.fp16:
             try:
-                from apex import amp
-                self.amp = amp
-            except ImportError:
-                raise ImportError("Please install apex from https://www.github.com/nvidia/apex to use fp16 training.")
-            self.model, self.optimizer = self.amp.initialize(self.model, self.optimizer,
-                                                             opt_level=self.args.fp16_opt_level)
+                self.autocast = torch.cuda.amp.autocast()
+                self.scaler = torch.cuda.amp.GradScaler()
+            except Exception:
+                raise ImportError("You need to update to PyTorch 1.6, the current PyTorch version is {}"
+                                  .format(torch.__version__))
 
     def _eval(self, batch_iter):
         self.model.eval()

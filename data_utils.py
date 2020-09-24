@@ -8,7 +8,6 @@ functions:
   1. load and save data (checked)
   2. merge non-seq and seq data (checked)
   3. convert data to tensor (checked)
-  4. prepare 5-CV (todo)
 """
 
 from torch import tensor, float32, long

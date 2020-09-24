@@ -100,12 +100,8 @@ if __name__ == '__main__':
     parser.add_argument("--batch_size", default=1, type=int, help='how many patients data we feed in each iteration')
     parser.add_argument("--loss_mode", default='bin', type=str,
                         help='using "bin" for Softmax+BCELoss or "mul" for CrossEntropyLoss')
-    # TODO: enable mix-percision training
     parser.add_argument('--fp16', action='store_true',
-                        help="Whether to use 16-bit float precision instead of 32-bit")
-    parser.add_argument("--fp16_opt_level", type=str, default="O1",
-                        help="For fp16: Apex AMP optimization level selected in ['O0', 'O1', 'O2', and 'O3']."
-                             "See details at https://nvidia.github.io/apex/amp.html")
+                        help="Whether to use 16-bit float precision (PyTorch 1.6 naive implementation)")
 
     args = parser.parse_args()
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

@@ -88,35 +88,46 @@ class SeqEHRTrainer(object):
         batch_iter = tqdm(iterable=test_data_loader, desc='Batch', disable=False)
         yt_probs, yp_probs, yt_tags, yp_tags, eval_loss, representations = self._eval(batch_iter)
 
+        res_path = None
+        if self.args.result_path:
+            self.args.logger.info("Results are reported in {}".format(self.args.result_path))
+            res_path = Path(self.args.result_path)
+            res_path.mkdir(parents=True, exist_ok=True)
+            raw_res_fn = res_path / "raw_results.tsv"
+
+            with open(raw_res_fn, "w") as f:
+                header = "\t".join(
+                    ["\t".join([str(i) for i in range(len(yp_probs[0]))]), "predict_label", "true_label"])
+                f.write(header + "\n")
+                for each in zip(yp_probs, yp_tags, yt_tags):
+                    probs = "\t".join([str(e) for e in each[0]])
+                    line = "\t".join([probs, str(each[1]), str(each[2])]) + "\n"
+                    f.write(line)
+
         if do_eval:
             if self.args.loss_mode is ModelLossMode.BIN:
                 # BIN use acc and ROC-AUC
                 acc = self._get_acc(yt=yt_tags, yp=yp_tags)
                 auc_score, auc_score_1, sensitivity, specificity, J_idx = self._get_auc(yt=yt_probs, yp=yp_probs)
-                eval_res = "accuracy:{:.4f}\nauc_score:{:.4f}\nsensitivity:{:.4f}\nspecificity:{:.4f}\nJ_index:{}"\
+                eval_res = "accuracy:{:.4f}\nauc_score:{:.4f}\nsensitivity:{:.4f}\nspecificity:{:.4f}\nJ_index:{}\n"\
                     .format(acc, auc_score, sensitivity, specificity, J_idx)
             else:
                 # ModelLossMode.MUL use acc and PRF
                 acc = self._get_acc(yt=yt_tags, yp=yp_tags)
                 pre, rec, f1 = self._get_prf(yt=yt_tags, yp=yp_tags)
-                eval_res = "accuracy:{:.4f}\nprecision:{:.4f}\nrecall:{:.4f}\nF1-micro:{:.4f}"\
+                eval_res = "accuracy:{:.4f}\nprecision:{:.4f}\nrecall:{:.4f}\nF1-micro:{:.4f}\n"\
                     .format(acc, pre, rec, f1)
 
-            if self.args.result_path:
-                self.args.logger.info("Results are reported in {}".format(self.args.result_path))
-                res_path = Path(self.args.result_path)
-                res_path.mkdir(parents=True, exist_ok=True)
-                raw_res_fn = res_path / "raw_results.tsv"
+                try:
+                    auc_score, auc_score_1, sensitivity, specificity, J_idx = self._get_auc(yt=yt_probs, yp=yp_probs)
+                    eval_res += \
+                        "accuracy:{:.4f}\nauc_score:{:.4f}\nsensitivity:{:.4f}\nspecificity:{:.4f}\nJ_index:{}\n" \
+                        .format(acc, auc_score, sensitivity, specificity, J_idx)
+                except Exception:
+                    pass
+
+            if res_path:
                 eval_metric_fn = res_path / "evaluation.txt"
-
-                with open(raw_res_fn, "w") as f:
-                    header = "\t".join(["\t".join([str(i) for i in range(len(yp_probs[0]))]), "predict_label", "true_label"])
-                    f.write(header + "\n")
-                    for each in zip(yp_probs, yp_tags, yt_tags):
-                        probs = "\t".join([str(e) for e in each[0]])
-                        line = "\t".join([probs, str(each[1]), str(each[2])]) + "\n"
-                        f.write(line)
-
                 with open(eval_metric_fn, "w") as f:
                     f.write(eval_res)
 

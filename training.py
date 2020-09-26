@@ -247,6 +247,13 @@ class SeqEHRTrainer(object):
         return yt_probs, yp_probs, yt_tags, yp_tags, eval_loss/global_step, reps
 
     @staticmethod
+    def _covert_single_label_to_ohe_label(label):
+        metrix = np.ones((len(label), 2), dtype=float)
+        for idx, each in enumerate(label):
+            metrix[idx][each] = 1.0
+        return metrix
+
+    @staticmethod
     def _get_auc(yt, yp):
         """
         :param yt: true labels as numpy array of [[0, 1], [1,0]]
@@ -267,13 +274,6 @@ class SeqEHRTrainer(object):
         J_idx = th[opt_idx]
 
         return auc_score, auc_score_1, sensitivity, specificity, J_idx
-
-    @staticmethod
-    def _covert_single_label_to_ohe_label(label):
-        metrix = np.ones((len(label), 2))
-        for idx, each in enumerate(label):
-            metrix[idx][each] = 1.0
-        return metrix
 
     @staticmethod
     def _get_prf(yt, yp):

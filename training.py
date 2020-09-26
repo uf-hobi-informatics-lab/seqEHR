@@ -223,9 +223,13 @@ class SeqEHRTrainer(object):
 
                 pred_probs = pred_probs.detach().cpu().numpy()  # to cpu as np array
                 pred_tags = pred_tags.detach().cpu().numpy()
-                true_probs = batch[-1].detach().cpu().numpy()
-                true_tags = np.argmax(true_probs, axis=-1)
                 rep = rep.detach().cpu().numpy()
+                if self.args.loss_mode is ModelLossMode.BIN:
+                    true_probs = batch[-1].detach().cpu().numpy()
+                    true_tags = np.argmax(true_probs, axis=-1)
+                else:
+                    true_probs = self._covert_single_label_to_ohe_label(batch[-1].detach().cpu().numpy())
+                    true_tags = batch[-1].detach().cpu().numpy()
 
                 if yt_probs is None:
                     yt_probs = true_probs
@@ -263,6 +267,13 @@ class SeqEHRTrainer(object):
         J_idx = th[opt_idx]
 
         return auc_score, auc_score_1, sensitivity, specificity, J_idx
+
+    @staticmethod
+    def _covert_single_label_to_ohe_label(label):
+        metrix = np.ones((len(label), 2))
+        for idx, each in enumerate(label):
+            metrix[idx][each] = 1.0
+        return metrix
 
     @staticmethod
     def _get_prf(yt, yp):

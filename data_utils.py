@@ -18,7 +18,6 @@ from config import ModelType, ModelLossMode
 class SeqEHRDataLoader:
 
     def __init__(self, data, model_type, loss_mode, batch_size, task='train'):
-        self.batch_size = 1
         self.data = data
         self.task = task
         self.model_type = model_type

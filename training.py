@@ -73,9 +73,24 @@ class SeqEHRTrainer(object):
                     self.args.logger.info("epoch: {}; step: {}; current loss: {:.4f}; "
                                           "total loss: {:.4f}; average loss: {:.4f}"
                                           .format((epoch+1), global_step, loss, tr_loss, (tr_loss/global_step)))
+                    if self.args.log_gradients:
+                        for name, parms in self.model.named_parameters():
+                            self.args.logger.info(
+                                '-->name:', name,
+                                '-->grad_requirs:', parms.requires_grad,
+                                '--weight', torch.mean(parms.data),
+                                '-->grad_value:', torch.mean(parms.grad))
+
             if self.args.log_step == -1:
                 self.args.logger.info("epoch: {}; total loss: {:.4f}; average loss: {:.4f}"
                                       .format((epoch+1), tr_loss, (tr_loss/global_step)))
+                if self.args.log_gradients:
+                    for name, parms in self.model.named_parameters():
+                        self.args.logger.info(
+                            '-->name:', name,
+                            '-->grad_requirs:', parms.requires_grad,
+                            '--weight', torch.mean(parms.data),
+                            '-->grad_value:', torch.mean(parms.grad))
 
         # save model and config
         self._save_model()
@@ -165,6 +180,7 @@ class SeqEHRTrainer(object):
                                      nonseq_output_dim=self.args.nonseq_representation_dim,
                                      mix_output_dim=self.args.mix_output_dim,
                                      loss_mode=self.args.loss_mode)
+        self.config.sampling_weight = self.args.sampling_weight
         self.model = MixModel(config=self.config, model_type=self.args.model_type)
         self.model.to(self.args.device)
 

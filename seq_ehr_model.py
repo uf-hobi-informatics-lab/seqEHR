@@ -73,6 +73,19 @@ class MixModel(N.Module):
         self.merge_layer = N.Linear(config.nonseq_output_dim+config.seq_hidden_dim, config.mix_hidden_dim)
         self.classifier = N.Linear(config.mix_hidden_dim, config.mix_output_dim)
         self.loss_mode = config.loss_mode
+        self.sampling_weight = torch.tensor(config.sampling_weight, dtype=torch.float) \
+            if ('sampling_weight' in config.__dict__ and config.sampling_weight) else None
+
+        self.init_weights()
+
+    def init_weights(self):
+        for n, p in self.named_parameters():
+            if p.data.ndimension() >= 2:
+                N.init.xavier_uniform_(p.data)
+                # N.init.normal_(p.data, mean=0.0, std=0.1)
+            else:
+                N.init.zeros_(p.data)
+                # N.init.ones_(p.data)
 
     def forward(self, x=None):
         """
@@ -98,7 +111,7 @@ class MixModel(N.Module):
         # non_seq_rep: (B, h)   seq_rep: (B, h)
         m_rep = torch.cat([non_seq_rep, seq_rep], dim=1)
 
-        # TODO we need to work on this part of the network: test different non-linear function; test number of layers
+        # merge (B, h+h)
         raw_rep = self.merge_layer(m_rep)
         m_rep = torch.tanh(F.dropout(raw_rep, p=self.dropout_rate))
 
@@ -108,12 +121,10 @@ class MixModel(N.Module):
 
         if self.loss_mode is ModelLossMode.BIN:
             # y dim (B, 2)
-            loss = F.binary_cross_entropy(pred_prob, y)
-            # loss = F.binary_cross_entropy_with_logits(logits, y)
+            loss = F.binary_cross_entropy_with_logits(logits, y, weight=self.sampling_weight)
         elif self.loss_mode is ModelLossMode.MUL:
             # y dim (B, 1)
-            # y_hat = y.type(torch.long)
-            loss = F.cross_entropy(logits, y)
+            loss = F.cross_entropy(logits, y, weight=self.sampling_weight)
         else:
             raise NotImplementedError("loss mode only support bin or mul but get {}".format(self.loss_mode.value))
 

@@ -200,7 +200,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    args.logger = TLSTMLogger(logger_file=args.log_file, logger_level='i').get_logger()
+    args.logger = SeqEHRLogger(logger_file=args.log_file, logger_level='i').get_logger()
     if args.config_path is None:
         args.config_path = args.model_path
     main(args)

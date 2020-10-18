@@ -18,7 +18,7 @@ class NonSeqModel(nn.Module):
 
     def forward(self, x):
         x = self.mlp1(x)
-        x = F.selu(self.mlp2(x))
+        x = self.mlp2(x)
         return self.mlp3(x)
 
 
@@ -120,7 +120,7 @@ class MixModel(nn.Module):
 
         # merge (B, h+h)
         raw_rep = self.merge_layer(m_rep)
-        m_rep = torch.tanh(F.dropout(raw_rep, p=self.dropout_rate))
+        m_rep = F.dropout(raw_rep, p=self.dropout_rate)
 
         # (B, 2)
         logits = self.classifier(m_rep)
@@ -143,6 +143,15 @@ class MixEmbeddingModel(MixModel):
      This is a model extended on MixModel.
      The MixModel using pre-defined feature representation formats
      such as One-hot encoding, binary encoding or raw numbers
+    """
 
+    def __init__(self, config, model_type=ModelType.M_LSTM):
+        super(MixEmbeddingModel, self).__init__(config, model_type)
+        self.medical_emb = nn.Embedding.from_pretrained(torch.tensor(config.embedding), freeze=False, padding_idx=0)
+
+
+class MixTCNModel(nn.Module):
+    """
+        Using TCN instead of LSTM
     """
     pass

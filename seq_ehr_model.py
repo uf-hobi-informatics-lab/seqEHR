@@ -7,18 +7,17 @@ from config import ModelType, ModelLossMode
 
 class NonSeqModel(nn.Module):
     """
-     This is a three layer model mapping OHE features to representations
+     This is a MLP model mapping OHE features to representations
     """
-
     def __init__(self, input_dim, hidden_dim, output_dim):
         super(NonSeqModel, self).__init__()
         self.mlp1 = nn.Linear(input_dim, hidden_dim)
-        self.mlp2 = nn.Linear(hidden_dim, hidden_dim)
+        # self.mlp2 = nn.Linear(hidden_dim, hidden_dim)
         self.mlp3 = nn.Linear(hidden_dim, output_dim)
 
     def forward(self, x):
         x = self.mlp1(x)
-        x = self.mlp2(x)
+        # x = self.mlp2(x)
         return self.mlp3(x)
 
 

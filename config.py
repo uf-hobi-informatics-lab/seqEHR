@@ -3,6 +3,7 @@ import enum
 
 class ModelType(enum.Enum):
     M_LSTM = "clstm"
+    M_GRU = "cgru"
     M_TLSTM = "ctlstm"
 
 
@@ -16,5 +17,5 @@ class ModelOptimizers(enum.Enum):
     SGD = "sgd"
 
 
-MODEL_TYPE_FLAGS = {"clstm": ModelType.M_LSTM, "ctlstm": ModelType.M_TLSTM}
+MODEL_TYPE_FLAGS = {"clstm": ModelType.M_LSTM, "ctlstm": ModelType.M_TLSTM, "cgru":ModelType.M_GRU}
 MODEL_LOSS_MODES = {"bin": ModelLossMode.BIN, "mul": ModelLossMode.MUL}

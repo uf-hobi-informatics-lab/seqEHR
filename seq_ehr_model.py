@@ -68,6 +68,9 @@ class MixModel(nn.Module):
         elif model_type is ModelType.M_LSTM:
             # LSTM hidden state dim = (batch, num_layers * num_directions, hidden_size)
             self.seq_model = nn.LSTM(config.seq_input_dim, config.seq_hidden_dim, batch_first=True)
+        elif model_type is ModelType.M_GRU:
+            # LSTM hidden state dim = (batch, num_layers * num_directions, hidden_size)
+            self.seq_model = nn.GRU(config.seq_input_dim, config.seq_hidden_dim, batch_first=True)
         else:
             raise NotImplementedError("We only support model ctlsm and clstm but get {}".format(model_type.value))
 

@@ -74,7 +74,7 @@ def train(args, model, features, times, labels):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
     # # using AdamW for better generalizability
-    # no_decay = {'', '', '', ''}
+    # no_decay = {'bias', 'norm'}
     # optimizer_grouped_parameters = [
     #     {'params': [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
     #      'weight_decay': args.weight_decay},

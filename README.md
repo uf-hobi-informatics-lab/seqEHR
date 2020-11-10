@@ -18,8 +18,10 @@
 ### LSTM
 - This is baseline for comparison purpose
 
-### LSTM and TLSTM with attention
-- we implement soft-attention mechanism for both LSTM and TLSTM using (global or dyanamic strategy)
+### embedding
+- we only support pre-trained embeddings
+- we do not support in-situ embedding random initialization
+- if you want to random initialize embeddings, you have to create a random initialized embeddings yourself
 
 ### self-attention
 - we implement a self-attention architecture to replace LSTM and TLSTM

@@ -253,11 +253,11 @@ class SeqEHRTrainer(object):
                     yp_tags = pred_tags
                     reps = rep
                 else:
-                    yp_probs = np.concatenate([yp_probs, pred_probs], axis=0)
-                    yp_tags = np.concatenate([yp_tags, pred_tags], axis=0)
-                    yt_probs = np.concatenate([yt_probs, true_probs], axis=0)
-                    yt_tags = np.concatenate([yt_tags, true_tags], axis=0)
-                    reps = np.concatenate([reps, rep], axis=0)
+                    yp_probs = np.vstack([yp_probs, pred_probs])
+                    yp_tags = np.vstack([yp_tags, pred_tags])
+                    yt_probs = np.vstack([yt_probs, true_probs])
+                    yt_tags = np.vstack([yt_tags, true_tags])
+                    reps = np.vstack([reps, rep])
 
         return yt_probs, yp_probs, yt_tags, yp_tags, eval_loss/global_step, reps
 

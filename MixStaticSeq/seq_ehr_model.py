@@ -1,3 +1,6 @@
+import sys
+sys.path.append("../")
+
 from TLSTM.tlstm import TLSTMCell
 import torch
 from torch import nn
@@ -72,7 +75,7 @@ class MixModel(nn.Module):
             # LSTM hidden state dim = (batch, num_layers * num_directions, hidden_size)
             self.seq_model = nn.GRU(config.seq_input_dim, config.seq_hidden_dim, batch_first=True)
         else:
-            raise NotImplementedError("We only support model ctlsm and clstm but get {}".format(model_type.value))
+            raise NotImplementedError("We only support model tlsm, lstm, gru but get {}".format(model_type.value))
 
         self.non_seq_model = NonSeqModel(
             config.nonseq_input_dim, config.nonseq_hidden_dim, config.nonseq_output_dim)

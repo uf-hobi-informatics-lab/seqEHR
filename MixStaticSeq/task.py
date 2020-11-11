@@ -20,12 +20,12 @@ def main(args):
     try:
         args.model_type = MODEL_TYPE_FLAGS[args.model_type]
     except ValueError:
-        raise RuntimeError("we support: lstm, tlstm, clstm, and ctlstm but get {}".format(args.model_type))
+        raise RuntimeError("we support: lstm, tlstm but get {}".format(args.model_type))
 
     try:
         args.loss_mode = MODEL_LOSS_MODES[args.loss_mode]
     except ValueError:
-        raise RuntimeError("we support: lstm, tlstm, clstm, and ctlstm but get {}".format(args.loss_mode))
+        raise RuntimeError("we support: lstm, tlstm but get {}".format(args.loss_mode))
 
     # load data
     # if using TLSMT the data have 4 components as non-seq, seq, time elapse, label

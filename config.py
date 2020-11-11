@@ -2,9 +2,9 @@ import enum
 
 
 class ModelType(enum.Enum):
-    M_LSTM = "clstm"
-    M_GRU = "cgru"
-    M_TLSTM = "ctlstm"
+    M_LSTM = "lstm"
+    M_GRU = "gru"
+    M_TLSTM = "tlstm"
 
 
 class ModelLossMode(enum.Enum):
@@ -12,10 +12,19 @@ class ModelLossMode(enum.Enum):
     MUL = "multi-classes"
 
 
+class EmbeddingReductionMode(enum.Enum):
+    SUM = "sum"
+    FUSE = "fuse"
+
+
 class ModelOptimizers(enum.Enum):
     ADAM = "adam"
     SGD = "sgd"
 
 
-MODEL_TYPE_FLAGS = {"clstm": ModelType.M_LSTM, "ctlstm": ModelType.M_TLSTM, "cgru":ModelType.M_GRU}
+MODEL_TYPE_FLAGS = {
+    "lstm": ModelType.M_LSTM,
+    "tlstm": ModelType.M_TLSTM,
+    "gru": ModelType.M_GRU,
+}
 MODEL_LOSS_MODES = {"bin": ModelLossMode.BIN, "mul": ModelLossMode.MUL}

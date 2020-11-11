@@ -8,9 +8,11 @@ import argparse
 from pathlib import Path
 from tqdm import trange
 import random
+from tlstm import TLSTMConfig, TLSTM
+import sys
+sys.path.append("../")
 
-from .tlstm import TLSTMConfig, TLSTM
-from .utils import pkl_save, pkl_load, SeqEHRLogger
+from utils import pkl_save, pkl_load, SeqEHRLogger
 
 
 def _eval(model, features, times, labels):
@@ -45,12 +47,12 @@ def _eval(model, features, times, labels):
                 pred_labels = logits
                 y_preds = y_pred
                 gs_labels = label
-                y_trues = label[1]
+                y_trues = label[:, 1]
             else:
                 pred_labels = np.concatenate([pred_labels, logits], axis=0)
                 y_preds = np.concatenate([y_preds, y_pred], axis=0)
                 gs_labels = np.concatenate([gs_labels, label], axis=0)
-                y_trues = np.concatenate([y_trues, label[1]], axis=0)
+                y_trues = np.concatenate([y_trues, label[:, 1]], axis=0)
 
     total_acc = accuracy_score(y_trues, y_preds)
     total_auc = roc_auc_score(gs_labels, pred_labels, average='micro')

@@ -45,7 +45,11 @@ class TestTCNModel(nn.Module):
         self.linear = nn.Linear(num_channels[-1], output_size)
 
     def forward(self, inputs, labels):
-        y1 = self.tcn(inputs)  # input should have dimension (N, C, L) - L is time seq; C is features
+        # input should have dimension (N, C, L) - L is time seq; C is features
+        # thus we need to apply transpose on (B, S, F) => (B, F, S)
+        inputs = inputs.transpose(1, 2)
+        # we need to transpose back
+        y1 = self.tcn(inputs).transpose(1, 2)
         o = self.linear(y1[:, :, -1])
         loss = nn.functional.binary_cross_entropy_with_logits(labels, o)
         return loss, o, torch.argmax(o, dim=1)
@@ -109,16 +113,16 @@ def train(args, model, features, times, labels):
 
     # optimizer set up
     # # use adam to follow the original implementation
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
+    # optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
-    # # using AdamW for better generalizability
-    # no_decay = {'bias', 'norm'}
-    # optimizer_grouped_parameters = [
-    #     {'params': [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
-    #      'weight_decay': args.weight_decay},
-    #     {'params': [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
-    # ]
-    # optimizer = torch.optim.AdamW(optimizer_grouped_parameters, lr=args.learning_rate, eps=args.eps)
+    # using AdamW for better generalizability
+    no_decay = {'bias', 'norm'}
+    optimizer_grouped_parameters = [
+        {'params': [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
+         'weight_decay': args.weight_decay},
+        {'params': [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
+    ]
+    optimizer = torch.optim.AdamW(optimizer_grouped_parameters, lr=args.learning_rate, eps=args.eps)
 
     # using fp16 for training rely on Nvidia apex package
     if args.fp16:

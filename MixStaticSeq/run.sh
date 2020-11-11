@@ -2,8 +2,8 @@
 export CUDA_VISIBLE_DEVICES=-1
 
 # # define data path
-train_data='./data/train.pkl'
-test_data='./data/test.pkl'
+train_data='../data/train.pkl'
+test_data='../data/test.pkl'
 new_model='./model'
 res_output='./result'
 mlog='./log.txt'
@@ -11,7 +11,7 @@ mlog='./log.txt'
 # # run experiment
 # # train and test
 python task.py \
-  --model_type clstm \
+  --model_type lstm \
   --train_data_path $train_data \
   --test_data_path $test_data \
   --new_model_path $new_model  \
@@ -28,7 +28,6 @@ python task.py \
   --nonseq_hidden_dim 64 \
   --seq_hidden_dim 64 \
   --mix_hidden_dim 64 \
-  --log $mlog \
   --nonseq_representation_dim 64 \
   --mix_output_dim 2 \
   --loss_mode bin

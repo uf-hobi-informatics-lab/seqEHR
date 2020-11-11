@@ -1,7 +1,7 @@
 # seqEHR
 > develop deep learning-based models for learning structured EHR as sequence
 
-## seqEHR model
+## MixStaticSeq model
 - we develope a mix model which can handle both static features (e.g., demographics) and time-series features (e.g., diagnoses, medication, procedure, labs)
 - we use MLP + TLSTM (or LSTM) as model architecture
 - we have a specific data input format doc at: 
@@ -18,7 +18,7 @@
 ### LSTM
 - This is baseline for comparison purpose
 
-### embedding
+### Embedding
 - we only support pre-trained embeddings
 - we do not support in-situ embedding random initialization
 - if you want to random initialize embeddings, you have to create a random initialized embeddings yourself

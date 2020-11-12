@@ -2,11 +2,13 @@ import torch
 import numpy as np
 import argparse 
 import random
+import sys
+sys.path.append("../")
 
-from utils import SeqEHRLogger, pkl_load
+from common_utils.utils import SeqEHRLogger, pkl_load
 from training import SeqEHRTrainer
 from data_utils import SeqEHRDataLoader
-from config import ModelType, MODEL_TYPE_FLAGS, ModelLossMode, MODEL_LOSS_MODES
+from common_utils.config import MODEL_TYPE_FLAGS, MODEL_LOSS_MODES
 
 
 def main(args):

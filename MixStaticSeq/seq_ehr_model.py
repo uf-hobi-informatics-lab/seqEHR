@@ -5,7 +5,7 @@ from TLSTM.tlstm import TLSTMCell
 import torch
 from torch import nn
 import torch.nn.functional as F
-from config import ModelType, ModelLossMode
+from common_utils.config import ModelType, ModelLossMode
 
 
 class NonSeqModel(nn.Module):

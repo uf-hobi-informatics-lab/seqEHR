@@ -1,8 +1,10 @@
 import torch
 import numpy as np
 from pathlib import Path
-from utils import pkl_save, pkl_load
-from config import ModelType, ModelOptimizers, ModelLossMode
+import sys
+sys.path.append("../")
+from common_utils.utils import pkl_save, pkl_load
+from common_utils.config import ModelOptimizers, ModelLossMode
 from seq_ehr_model import MixModelConfig, MixModel
 from sklearn.metrics import accuracy_score, roc_auc_score, auc, roc_curve, precision_recall_fscore_support
 from tqdm import trange, tqdm

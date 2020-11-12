@@ -14,7 +14,8 @@ class ModelLossMode(enum.Enum):
 
 class EmbeddingReductionMode(enum.Enum):
     SUM = "sum"
-    FUSE = "fuse"
+    AVG = "avg"
+    MAX = "max"
 
 
 class ModelOptimizers(enum.Enum):

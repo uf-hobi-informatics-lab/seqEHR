@@ -14,7 +14,7 @@ from common_utils.config import ModelType, ModelLossMode, EmbeddingReductionMode
 
 
 class SeqEmbEHRConfig:
-    def __init__(self, input_dim=10, output_dim=1, hidden_dim=128, emb_dim=32, drop_prob=0.1,
+    def __init__(self, input_dim=10, output_dim=1, hidden_dim=128, emb_dim=32, drop_prob=0.1, emb_freeze=False,
                  model_type=ModelType.M_GRU, loss_type=ModelLossMode.BIN, merge_type=EmbeddingReductionMode.SUM):
         self.input_dim = input_dim
         self.emb_dim = emb_dim
@@ -24,6 +24,7 @@ class SeqEmbEHRConfig:
         self.loss_type = loss_type
         self.merge_type = merge_type
         self.drop_prob = drop_prob
+        self.emb_freeze=emb_freeze
 
     def __str__(self):
         s = ""
@@ -46,8 +47,9 @@ class SeqEmbEHR(nn.Module):
 
         # could be replaced by EmbeddingBag
         self.embedding_layer = nn.Embedding.from_pretrained(
-            torch.tensor(emb_weights, dtype=torch.float32), padding_idx=0)
+            torch.tensor(emb_weights, dtype=torch.float32), freeze=config.emb_freeze)
         self.emb_dim = self.embedding_layer.embedding_dim
+
         if self.merge_type is EmbeddingReductionMode.AVG:
             # we do not apply adjust linear transformation on average case
             self.adjust_layer = None

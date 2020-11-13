@@ -93,15 +93,20 @@ class TemporalConvNetEHR(nn.Module):
         super().__init__()
         self.loss_type = conf.loss_type
         self.keep_dim = conf.keep_dim
-
-        if conf.use_emb:
-            self.embedding_layer = nn.Embedding.from_pretrained(
-                torch.tensor(emb_weights, dtype=torch.float32), padding_idx=0)
+        self.use_emb = conf.use_emb
+        if self.use_emb:
+            # if set use_emb to true, a pre-trained embedding must be provided
+            assert emb_weights is not None, "expect a pre-trained embeddings provided"
+            # we default set freeze=False, mode=mean
+            self.embedding_layer = nn.EmbeddingBag.from_pretrained(
+                torch.tensor(emb_weights, dtype=torch.float32), freeze=False, mode='mean')
             emb_dim = self.embedding_layer.embedding_dim
             # if use embedding, the input dim should be the same as emb_dim
             assert emb_dim == conf.num_inputs, \
                 "expect embedding dimension is the same as TCN input dims but get emb:{} and input:{}".format(
                     emb_dim, conf.num_inputs)
+        else:
+            self.embedding_layer = None
 
         self.tcn = TemporalConvNet(
             num_inputs=conf.num_inputs, num_channels=conf.num_channels,
@@ -110,7 +115,8 @@ class TemporalConvNetEHR(nn.Module):
 
     def forward(self, x, y):
         # x shape: (B, S, F)
-        # TODO: embedding here
+        if self.use_emb:
+            x = self.embedding_layer(x)
         # input for TCN should be (B, F, S)
         x = x.transpose(1, 2)
         # apply TCN

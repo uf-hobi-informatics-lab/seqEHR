@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.nn.utils import weight_norm
+from common_utils.config import ModelType, ModelLossMode, EmbeddingReductionMode
 
 
 class Chomp1d(nn.Module):
@@ -61,3 +62,70 @@ class TemporalConvNet(nn.Module):
 
     def forward(self, x):
         return self.network(x)
+
+
+class TemporalConvNetEHRConfig:
+    def __init__(self, input_dim=16, hidden_dim=128, output_dim=1, num_tcn_blocks=4,
+                 kernel_size=3, drop_prob=0.1, loss_type=ModelLossMode.BIN, keep_dim=False):
+        self.num_inputs = input_dim
+        self.kernel_size = kernel_size
+        self.drop_prob = drop_prob
+        self.output_dim = output_dim
+        self.loss_type = loss_type
+        # derive num_channels using hidden_dim, num_tcn_blocks, and input_dim
+        self.num_channels = [hidden_dim] * (num_tcn_blocks - 1) + [input_dim]
+        # if keep dim set to True, the output shape will be (B, S, O) else (B, O)
+        # if keep dim results will be returned without loss calculation
+        self.keep_dim = keep_dim
+
+    def __str__(self):
+        s = ""
+        for k, v in self.__dict__.items():
+            s += "{}={}\n".format(k, v)
+        return s
+
+
+class TemporalConvNetEHR(nn.Module):
+
+    def __init__(self, conf=None):
+        super().__init__()
+        self.loss_type = conf.loss_type
+        self.keep_dim = conf.keep_dim
+
+        self.tcn = TemporalConvNet(
+            num_inputs=conf.num_inputs, num_channels=conf.num_channels,
+            kernel_size=conf.kernel_size, dropout=conf.drop_prob)
+        self.classifier = nn.Linear(conf.num_inputs, conf.output_dim)
+
+    def forward(self, x, y):
+        # x shape: (B, S, F)
+        # TODO: embedding here
+        # input for TCN should be (B, F, S)
+        x = x.transpose(1, 2)
+        # apply TCN
+        x = self.tcn(x)
+        # whether keep all sequence outputs or just last time step
+        if self.keep_dim:
+            return x.transpose(1, 2)
+        else:
+            # re-transpose (B, O, S) => (B, S, O)
+            x = x.transpose(1, 2)
+            # (B, S, O) => (B, O)
+            x = x[:, -1, :]
+        rep = x.clone()
+
+        x = self.classifier(x)
+        pred_prob = torch.softmax(x, dim=-1)
+        pred_labels = torch.argmax(x, dim=-1)
+
+        # calc loss
+        if self.loss_type is ModelLossMode.BIN:
+            # y dim (B, 2)
+            loss = nn.functional.binary_cross_entropy_with_logits(x, y)
+        elif self.loss_type is ModelLossMode.MUL:
+            # y dim (B, 1)
+            loss = nn.functional.cross_entropy(x, y)
+        else:
+            raise NotImplementedError("loss mode only support bin or mul but get {}".format(self.loss_mode.value))
+
+        return loss, pred_prob, pred_labels, rep

@@ -22,8 +22,8 @@ class SeqEmbEHRConfig:
         self.hidden_dim = hidden_dim
         self.model_type = model_type
         self.loss_type = loss_type
-        self.drop_prob = drop_prob
         self.merge_type = merge_type
+        self.drop_prob = drop_prob
 
     def __str__(self):
         s = ""
@@ -115,4 +115,4 @@ class SeqEmbEHR(nn.Module):
         else:
             raise NotImplementedError("loss mode only support bin or mul but get {}".format(self.loss_mode.value))
 
-        return loss, pred_prob, torch.argmax(pred_prob, dim=-1), raw_rep
+        return loss, pred_prob, torch.argmax(outputs, dim=-1), raw_rep

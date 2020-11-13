@@ -65,7 +65,7 @@ class TemporalConvNet(nn.Module):
 
 
 class TemporalConvNetEHRConfig:
-    def __init__(self, input_dim=16, hidden_dim=128, output_dim=1, num_tcn_blocks=4,
+    def __init__(self, input_dim=16, hidden_dim=128, output_dim=1, num_tcn_blocks=4, use_emb=False,
                  kernel_size=3, drop_prob=0.1, loss_type=ModelLossMode.BIN, keep_dim=False):
         self.num_inputs = input_dim
         self.kernel_size = kernel_size
@@ -77,6 +77,8 @@ class TemporalConvNetEHRConfig:
         # if keep dim set to True, the output shape will be (B, S, O) else (B, O)
         # if keep dim results will be returned without loss calculation
         self.keep_dim = keep_dim
+        # flag whether to use embedding layer as input
+        self.use_emb = use_emb
 
     def __str__(self):
         s = ""
@@ -87,10 +89,19 @@ class TemporalConvNetEHRConfig:
 
 class TemporalConvNetEHR(nn.Module):
 
-    def __init__(self, conf=None):
+    def __init__(self, conf=None, emb_weights=None):
         super().__init__()
         self.loss_type = conf.loss_type
         self.keep_dim = conf.keep_dim
+
+        if conf.use_emb:
+            self.embedding_layer = nn.Embedding.from_pretrained(
+                torch.tensor(emb_weights, dtype=torch.float32), padding_idx=0)
+            emb_dim = self.embedding_layer.embedding_dim
+            # if use embedding, the input dim should be the same as emb_dim
+            assert emb_dim == conf.num_inputs, \
+                "expect embedding dimension is the same as TCN input dims but get emb:{} and input:{}".format(
+                    emb_dim, conf.num_inputs)
 
         self.tcn = TemporalConvNet(
             num_inputs=conf.num_inputs, num_channels=conf.num_channels,

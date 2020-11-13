@@ -1,4 +1,7 @@
-from utils import load_text, save_text
+import sys
+sys.path.append("../")
+
+from common_utils.utils import load_text, save_text
 import numpy as np
 
 

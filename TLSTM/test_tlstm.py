@@ -1,9 +1,6 @@
 import torch
 import numpy as np
 from sklearn.metrics import accuracy_score, roc_auc_score
-from sklearn.utils import shuffle
-import sys
-import os
 import argparse
 from pathlib import Path
 from tqdm import trange
@@ -12,7 +9,7 @@ from tlstm import TLSTMConfig, TLSTM
 import sys
 sys.path.append("../")
 
-from utils import pkl_save, pkl_load, SeqEHRLogger
+from common_utils.utils import pkl_save, pkl_load, SeqEHRLogger
 
 
 def _eval(model, features, times, labels):

@@ -16,6 +16,8 @@ class EmbeddingReductionMode(enum.Enum):
     SUM = "sum"
     AVG = "avg"
     MAX = "max"
+    # only when seq is same for all training and test data
+    FUSE = "fuse"
 
 
 class ModelOptimizers(enum.Enum):

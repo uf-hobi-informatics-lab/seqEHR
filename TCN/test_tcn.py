@@ -5,7 +5,7 @@ import sys
 sys.path.append("../")
 
 from common_utils.utils import pkl_load
-from common_utils.config import ModelType, ModelLossMode, EmbeddingReductionMode
+from common_utils.config import ModelType, ModelLossMode, EMBEDDING_REDUCTION_MODES
 from TCN.tcn import TemporalConvNetEHR, TemporalConvNetEHRConfig
 from sklearn.metrics import roc_auc_score, accuracy_score
 
@@ -17,9 +17,12 @@ if __name__ == '__main__':
     tssl = pkl_load("../data/tlstm_sync/label_test.pkl")
     tss = pkl_load("../data/tlstm_sync/data_test.pkl")
 
+    emb_red_mode = EMBEDDING_REDUCTION_MODES["avg"]
+
     conf = TemporalConvNetEHRConfig(
         input_dim=529, num_tcn_blocks=4, hidden_dim=64, output_dim=2,
-        kernel_size=2, drop_prob=0.1, loss_type=ModelLossMode.BIN, keep_dim=False)
+        kernel_size=2, drop_prob=0.1, loss_type=ModelLossMode.BIN, use_emb=False,
+        reduction_type=emb_red_mode, keep_dim=False)
     model = TemporalConvNetEHR(conf=conf)
 
     # training config

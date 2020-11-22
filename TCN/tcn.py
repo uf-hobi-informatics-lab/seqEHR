@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
 from torch.nn.utils import weight_norm
-from common_utils.config import ModelType, ModelLossMode, EmbeddingReductionMode
+from common_utils.config import ModelType, ModelLossMode, EmbeddingReductionMode, EmbeddingReductionMode
+import warnings
 
 
 class Chomp1d(nn.Module):
@@ -66,19 +67,23 @@ class TemporalConvNet(nn.Module):
 
 class TemporalConvNetEHRConfig:
     def __init__(self, input_dim=16, hidden_dim=128, output_dim=1, num_tcn_blocks=4, use_emb=False,
-                 kernel_size=3, drop_prob=0.1, loss_type=ModelLossMode.BIN, keep_dim=False):
+                 kernel_size=3, drop_prob=0.1, loss_type=ModelLossMode.BIN,
+                 keep_dim=False, reduction_type=EmbeddingReductionMode.AVG):
         self.num_inputs = input_dim
         self.kernel_size = kernel_size
         self.drop_prob = drop_prob
         self.output_dim = output_dim
         self.loss_type = loss_type
         # derive num_channels using hidden_dim, num_tcn_blocks, and input_dim
+        # current implementation assume all hidden state with same dim (original implementation)
+        # we can modify this to make hidden dims as trapezoid shape (hidden dim decrease layer by layer)
         self.num_channels = [hidden_dim] * (num_tcn_blocks - 1) + [input_dim]
         # if keep dim set to True, the output shape will be (B, S, O) else (B, O)
         # if keep dim results will be returned without loss calculation
         self.keep_dim = keep_dim
         # flag whether to use embedding layer as input
         self.use_emb = use_emb
+        self.emb_reduction_mode = reduction_type
 
     def __str__(self):
         s = ""
@@ -94,12 +99,27 @@ class TemporalConvNetEHR(nn.Module):
         self.loss_type = conf.loss_type
         self.keep_dim = conf.keep_dim
         self.use_emb = conf.use_emb
+        self.emb_reduction_type = conf.emb_reduction_mode
         if self.use_emb:
             # if set use_emb to true, a pre-trained embedding must be provided
             assert emb_weights is not None, "expect a pre-trained embeddings provided"
-            # we default set freeze=False, mode=mean
+
+            # reduction mode
+            if self.emb_reduction_type is EmbeddingReductionMode.AVG:
+                reduction_mode = 'mean'
+            elif self.emb_reduction_type is EmbeddingReductionMode.SUM:
+                reduction_mode = 'sum'
+            elif self.emb_reduction_type is EmbeddingReductionMode.MAX:
+                reduction_mode = 'max'
+            else:
+                warnings.warn(
+                    "{} is not supported, we will set reduction mode to average.".format(
+                        self.emb_reduction_type),RuntimeWarning)
+                reduction_mode = 'mean'
+
+            # we default set freeze=False
             self.embedding_layer = nn.EmbeddingBag.from_pretrained(
-                torch.tensor(emb_weights, dtype=torch.float32), freeze=False, mode='mean')
+                torch.tensor(emb_weights, dtype=torch.float32), freeze=False, mode=reduction_mode)
             emb_dim = self.embedding_layer.embedding_dim
             # if use embedding, the input dim should be the same as emb_dim
             assert emb_dim == conf.num_inputs, \

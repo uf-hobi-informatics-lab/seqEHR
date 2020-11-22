@@ -96,10 +96,13 @@ class SeqEmbEHR(nn.Module):
 
         # sequence model
         if self.model_type is ModelType.M_TLSTM:
-            h_f, (h_t, c_t) = self.seq_model(x, times)
-        else:
             h_f, (h_t, c_t) = self.seq_model(x)
             h_t = h_t.squeeze(0)
+        elif self.model_type is ModelType.M_GRU:
+            h_f, h_t = self.seq_model(x)
+            h_t = h_t.squeeze(0)
+        else:
+            h_f, (h_t, c_t) = self.seq_model(x, times)
 
         raw_rep = self.drop_output(h_t)
 

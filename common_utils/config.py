@@ -30,4 +30,12 @@ MODEL_TYPE_FLAGS = {
     "tlstm": ModelType.M_TLSTM,
     "gru": ModelType.M_GRU,
 }
+
 MODEL_LOSS_MODES = {"bin": ModelLossMode.BIN, "mul": ModelLossMode.MUL}
+
+
+EMBEDDING_REDUCTION_MODES = {
+    "avg": EmbeddingReductionMode.AVG,
+    "sum": EmbeddingReductionMode.SUM,
+    "max": EmbeddingReductionMode.MAX
+}

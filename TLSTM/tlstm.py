@@ -119,7 +119,7 @@ class TLSTMCell(N.Module):
             hidden_seq.append(h_t.unsqueeze(0))  # create extra dim for later concat (seq, batch, input)
 
         hidden_seq = torch.cat(hidden_seq, dim=0)  # concat to get the seq dim back (seq, batch, input)
-        # hidden_seq = hidden_seq.transpose(0, 1).contiguous()  # (seq, batch, input) => (batch, seq, input)
+        hidden_seq = hidden_seq.transpose(0, 1).clone()  # (seq, batch, input) => (batch, seq, input)
         return hidden_seq, (h_t, c_t)
 
     def map_elapse_time(self, t):
@@ -148,7 +148,8 @@ class TLSTM(N.Module):
     def forward(self, feature, time, labels):
         # get raw logits
         seq, (h_t, c_t) = self.tlstm(feature, time)
-        # seq = seq[-1, :, :]  # (seq, batch, input); get the last seq for classification
+        # (batch, seq, input); get the last seq for classification
+        # seq = seq[:, -1, :]
         last_state = h_t
         last_state = F.relu(self.fc_layer(last_state))
         last_state = F.dropout(last_state, p=self.dropout_prob)

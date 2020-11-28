@@ -1,16 +1,15 @@
 import torch
 import numpy as np
 from sklearn.metrics import accuracy_score, roc_auc_score
-from sklearn.utils import shuffle
-import sys
-import os
 import argparse
 from pathlib import Path
 from tqdm import trange
 import random
+from tlstm import TLSTMConfig, TLSTM
+import sys
+sys.path.append("../")
 
-from .tlstm import TLSTMConfig, TLSTM
-from .utils import pkl_save, pkl_load, SeqEHRLogger
+from common_utils.utils import pkl_save, pkl_load, SeqEHRLogger
 
 
 def _eval(model, features, times, labels):
@@ -45,12 +44,12 @@ def _eval(model, features, times, labels):
                 pred_labels = logits
                 y_preds = y_pred
                 gs_labels = label
-                y_trues = label[1]
+                y_trues = label[:, 1]
             else:
                 pred_labels = np.concatenate([pred_labels, logits], axis=0)
                 y_preds = np.concatenate([y_preds, y_pred], axis=0)
                 gs_labels = np.concatenate([gs_labels, label], axis=0)
-                y_trues = np.concatenate([y_trues, label[1]], axis=0)
+                y_trues = np.concatenate([y_trues, label[:, 1]], axis=0)
 
     total_acc = accuracy_score(y_trues, y_preds)
     total_auc = roc_auc_score(gs_labels, pred_labels, average='micro')
@@ -74,7 +73,7 @@ def train(args, model, features, times, labels):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
     # # using AdamW for better generalizability
-    # no_decay = {'', '', '', ''}
+    # no_decay = {'bias', 'norm'}
     # optimizer_grouped_parameters = [
     #     {'params': [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
     #      'weight_decay': args.weight_decay},
@@ -200,7 +199,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    args.logger = TLSTMLogger(logger_file=args.log_file, logger_level='i').get_logger()
+    args.logger = SeqEHRLogger(logger_file=args.log_file, logger_level='i').get_logger()
     if args.config_path is None:
         args.config_path = args.model_path
     main(args)

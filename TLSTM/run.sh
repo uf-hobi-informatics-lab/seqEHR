@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # training
-python task.py \
+python test_tlstm.py \
   --model_path '../model' \
   --do_train \
   --do_test \

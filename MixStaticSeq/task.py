@@ -2,11 +2,13 @@ import torch
 import numpy as np
 import argparse 
 import random
+import sys
+sys.path.append("../")
 
-from utils import SeqEHRLogger, pkl_load
+from common_utils.utils import SeqEHRLogger, pkl_load
 from training import SeqEHRTrainer
 from data_utils import SeqEHRDataLoader
-from config import ModelType, MODEL_TYPE_FLAGS, ModelLossMode, MODEL_LOSS_MODES
+from common_utils.config import MODEL_TYPE_FLAGS, MODEL_LOSS_MODES
 
 
 def main(args):
@@ -20,30 +22,40 @@ def main(args):
     try:
         args.model_type = MODEL_TYPE_FLAGS[args.model_type]
     except ValueError:
-        raise RuntimeError("we support: lstm, tlstm, clstm, and ctlstm but get {}".format(args.model_type))
+        raise RuntimeError("we support: lstm, tlstm but get {}".format(args.model_type))
 
     try:
         args.loss_mode = MODEL_LOSS_MODES[args.loss_mode]
     except ValueError:
-        raise RuntimeError("we support: lstm, tlstm, clstm, and ctlstm but get {}".format(args.loss_mode))
+        raise RuntimeError("we support: lstm, tlstm but get {}".format(args.loss_mode))
 
     # load data
     # if using TLSMT the data have 4 components as non-seq, seq, time elapse, label
     # if using LSTM the data have 3 components as non-seq, seq, label
     # seq data can have different seq length but encoded feature dim must be the same
     # The data should be in format as tuple of list of numpy arrays as [(np.array, np.array, np.array, np.array), ...]
-    train_data = pkl_load(args.train_data_path)
-    test_data = pkl_load(args.test_data_path)
-    # collect input dim for model init (seq, dim)
-    args.nonseq_input_dim = train_data[0][0].shape
-    args.seq_input_dim = train_data[0][1].shape
+    train_data_loader = None
+    if args.do_train:
+        train_data = pkl_load(args.train_data_path)
+        train_data_loader = SeqEHRDataLoader(
+            train_data, args.model_type, args.loss_mode, args.batch_size, task='train').create_data_loader()
+        args.total_step = len(train_data_loader)
+        # collect input dim for model init (seq, dim)
+        args.nonseq_input_dim = train_data[0][0].shape
+        args.seq_input_dim = train_data[0][1].shape
 
-    # create data loader (pin_memory is set to True) -> (B, S, T)
-    train_data_loader = SeqEHRDataLoader(
-        train_data, args.model_type, args.loss_mode, args.batch_size, task='train').create_data_loader()
-    test_data_loader = SeqEHRDataLoader(
-        test_data, args.model_type, args.loss_mode, args.batch_size, task='test').create_data_loader()
-    args.total_step = len(train_data_loader)
+        if args.sampling_weight:
+            # the data should be a 1-D numpy array of  1/ratio of each class
+            # (class with more samples should have low weights)
+            args.sampling_weight = pkl_load(args.sampling_weight)
+            args.logger.info("using sample weights as {}".format(args.sampling_weight))
+
+    test_data_loader = None
+    if args.do_test:
+        test_data = pkl_load(args.test_data_path)
+        # create data loader (pin_memory is set to True) -> (B, S, T)
+        test_data_loader = SeqEHRDataLoader(
+            test_data, args.model_type, args.loss_mode, args.batch_size, task='test').create_data_loader()
 
     # init task runner
     task_runner = SeqEHRTrainer(args)
@@ -67,6 +79,8 @@ if __name__ == '__main__':
                         help="training data dir, should contain a feature, time, and label pickle files")
     parser.add_argument("--test_data_path", default=None, type=str,
                         help="test data dir, should contain a feature, time, and label pickle files")
+    parser.add_argument("--sampling_weight", default=None, type=str,
+                        help="pickle file contain the weights for each sampling based on their distributions (opt)")
     parser.add_argument("--new_model_path", default="./model", type=str, help='where to save the trained model')
     parser.add_argument("--log_file", default=None, type=str, help='log file')
     parser.add_argument("--result_path", default=None, type=str,
@@ -94,6 +108,8 @@ if __name__ == '__main__':
     parser.add_argument("--mix_hidden_dim", default=64, type=int, help='fully connected layer size for mix model')
     parser.add_argument("--nonseq_representation_dim", default=64, type=int,
                         help='representation dim for nonseq features')
+    parser.add_argument("--log_gradients", action='store_true',
+                        help="Whether to log intermediate gradients with loss")
     parser.add_argument("--log_step", default=-1, type=int,
                         help='steps before logging after run training. If -1, log every epoch')
     parser.add_argument("--mix_output_dim", default=2, type=int, help='mix model output dim')

@@ -8,48 +8,26 @@ new_model='./model'
 res_output='./result'
 mlog='./log.txt'
 
-# # run experiment
-# # train and test
 python task.py \
-  --model_type lstm \
-  --train_data_path $train_data \
-  --test_data_path $test_data \
-  --new_model_path $new_model  \
-  --result_path $res_output \
-  --do_train \
-  --do_eval \
-  --do_test \
-  --optim adam \
-  --learning_rate 1e-3 \
-  --dropout_rate 0.1 \
-  --train_epochs 20 \
-  --do_warmup \
-  --warmup_ratio 0.1 \
-  --nonseq_hidden_dim 64 \
-  --seq_hidden_dim 64 \
-  --mix_hidden_dim 64 \
-  --nonseq_representation_dim 64 \
-  --mix_output_dim 2 \
-  --loss_mode bin
-
-# # only test
-#python task.py \
-#  --model_type clstm \
-#  --train_data_path $train_data \
-#  --test_data_path $test_data \
-#  --new_model_path $new_model  \
-#  --result_path $res_output \
-#  --do_eval \
-#  --do_test \
-#  --optim adam \
-#  --learning_rate 1e-3 \
-#  --dropout_rate 0.1 \
-#  --train_epochs 20 \
-#  --do_warmup \
-#  --warmup_ratio 0.1 \
-#  --nonseq_hidden_dim 64 \
-#  --seq_hidden_dim 64 \
-#  --mix_hidden_dim 64 \
-#  --nonseq_representation_dim 64 \
-#  --mix_output_dim 2 \
-#  --loss_mode bin
+    --model_type ctlstm \
+    --train_data_path $train_data \
+    --test_data_path $test_data \
+    --new_model_path $new_model  \
+    --result_path $res_output \
+    --do_train \
+    --do_eval \
+    --do_test \
+    --optim adam \
+    --learning_rate 1e-5 \
+    --seed $i \
+    --dropout_rate 0.1 \
+    --train_epochs 30 \
+    --nonseq_hidden_dim 64 \
+    --seq_hidden_dim 128 \
+    --mix_hidden_dim 64 \
+    --nonseq_representation_dim 64 \
+    --mix_output_dim 2 \
+    --log_step 2000 \
+    --log_file $log \
+    --batch_size 1 \
+    --loss_mode bin

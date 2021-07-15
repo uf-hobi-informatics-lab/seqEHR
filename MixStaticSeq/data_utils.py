@@ -9,11 +9,12 @@ functions:
   2. merge non-seq and seq data (checked)
   3. convert data to tensor (checked)
 """
-import sys
-sys.path.append("../")
 
 from torch import tensor, float32, long
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
+
+import sys
+sys.path.append("../")
 from common_utils.config import ModelType, ModelLossMode
 
 

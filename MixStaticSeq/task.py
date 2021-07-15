@@ -2,13 +2,13 @@ import torch
 import numpy as np
 import argparse 
 import random
-import sys
-sys.path.append("../")
-
-from common_utils.utils import SeqEHRLogger, pkl_load
 from training import SeqEHRTrainer
 from data_utils import SeqEHRDataLoader
 from common_utils.config import MODEL_TYPE_FLAGS, MODEL_LOSS_MODES
+
+import sys
+sys.path.append("../")
+from common_utils.utils import SeqEHRLogger, pkl_load
 
 
 def main(args):
@@ -32,7 +32,7 @@ def main(args):
     # load data
     # if using TLSMT the data have 4 components as non-seq, seq, time elapse, label
     # if using LSTM the data have 3 components as non-seq, seq, label
-    # seq data can have different seq length but encoded feature dim must be the same
+    # seq data can have different seq length (encounter numbers) but encoded feature dim must be the same
     # The data should be in format as tuple of list of numpy arrays as [(np.array, np.array, np.array, np.array), ...]
     train_data_loader = None
     if args.do_train:

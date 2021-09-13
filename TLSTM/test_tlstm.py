@@ -12,7 +12,7 @@ sys.path.append("../")
 from common_utils.utils import pkl_save, pkl_load, SeqEHRLogger
 
 
-def _eval(model, features, times, labels):
+def _eval(model, features, times, labels, mode):
     model.eval()
 
     assert len(features) == len(times) == len(labels), \
@@ -54,9 +54,9 @@ def _eval(model, features, times, labels):
     total_acc = accuracy_score(y_trues, y_preds)
     total_auc = roc_auc_score(gs_labels, pred_labels, average='micro')
     total_auc_macro = roc_auc_score(gs_labels, pred_labels, average='macro')
-    args.logger.info("Train Accuracy = {:.3f}".format(total_acc))
-    args.logger.info("Train AUC = {:.3f}".format(total_auc))
-    args.logger.info("Train AUC Macro = {:.3f}".format(total_auc_macro))
+    args.logger.info("{} Accuracy = {:.3f}".format(mode, total_acc))
+    args.logger.info("{} AUC = {:.3f}".format(mode, total_auc))
+    args.logger.info("{} AUC Macro = {:.3f}".format(mode, total_auc_macro))
 
 
 def train(args, model, features, times, labels):
@@ -120,7 +120,7 @@ def train(args, model, features, times, labels):
             tr_loss += loss.item()
         args.logger.info("epoch: {}; training loss: {}".format(epoch+1, tr_loss/(epoch+1)))
 
-    _eval(model, features, times, labels)
+    _eval(model, features, times, labels, "train")
 
 
 def test(args, model, features, times, labels):
@@ -131,7 +131,7 @@ def test(args, model, features, times, labels):
         get num of labels: {}.
         """.format(len(features), len(times), len(labels))
     data_idxs = list(range(len(features)))
-    _eval(model, features, times, labels)
+    _eval(model, features, times, labels, "test")
 
 
 def main(args):

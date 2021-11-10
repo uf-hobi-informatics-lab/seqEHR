@@ -9,7 +9,7 @@ res_output='./result'
 mlog='./log.txt'
 
 python task.py \
-    --model_type ctlstm \
+    --model_type tlstm \
     --train_data_path $train_data \
     --test_data_path $test_data \
     --new_model_path $new_model  \

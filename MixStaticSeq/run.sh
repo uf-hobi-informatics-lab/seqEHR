@@ -19,7 +19,7 @@ python task.py \
     --do_test \
     --optim adam \
     --learning_rate 1e-5 \
-    --seed $i \
+    --seed 13 \
     --dropout_rate 0.1 \
     --train_epochs 30 \
     --nonseq_hidden_dim 64 \
@@ -28,6 +28,6 @@ python task.py \
     --nonseq_representation_dim 64 \
     --mix_output_dim 2 \
     --log_step 2000 \
-    --log_file $log \
+    --log_file $mlog \
     --batch_size 1 \
     --loss_mode bin

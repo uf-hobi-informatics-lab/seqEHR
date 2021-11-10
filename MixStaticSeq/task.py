@@ -12,12 +12,12 @@ from common_utils.utils import SeqEHRLogger, pkl_load
 
 
 def main(args):
-    # general set up (random see for reproducibility, we default seed as 13)
-    random.seed(13)
-    np.random.seed(13)
-    torch.manual_seed(13)
+    # set random seed
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
     if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(13)
+        torch.cuda.manual_seed_all(args.seed)
 
     try:
         args.model_type = MODEL_TYPE_FLAGS[args.model_type]
@@ -101,6 +101,7 @@ if __name__ == '__main__':
     parser.add_argument("--learning_rate", default=1e-3, type=float, help='learning_rate')
     parser.add_argument("--dropout_rate", default=0.1, type=float, help='drop probability')
     parser.add_argument("--train_epochs", default=50, type=int, help='number of epochs for training')
+    parser.add_argument("--seed", default=13, type=int, help='random seed')
     parser.add_argument("--warmup_ratio", default=0.1, type=float,
                         help='percentage of warm up steps in the total steps per epoch (must be in [0, 1)')
     parser.add_argument("--nonseq_hidden_dim", default=128, type=int, help='MLP hidden layer size')

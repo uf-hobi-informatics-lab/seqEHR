@@ -1,11 +1,13 @@
-import sys
-sys.path.append("../")
-
-from TLSTM.tlstm import TLSTMCell
 import torch
-from torch import nn
 import torch.nn.functional as F
-from common_utils.config import ModelType, ModelLossMode
+from torch import nn
+
+from common_utils.config import ModelLossMode, ModelType
+from TLSTM.tlstm import TLSTMCell
+
+import sys
+
+sys.path.append("../")
 
 
 class NonSeqModel(nn.Module):

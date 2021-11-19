@@ -1,14 +1,16 @@
-import torch
-import numpy as np
-import argparse 
+import argparse
 import random
-from training import SeqEHRTrainer
-from data_utils import SeqEHRDataLoader
-from common_utils.config import MODEL_TYPE_FLAGS, MODEL_LOSS_MODES
-
 import sys
-sys.path.append("../")
+
+import numpy as np
+import torch
+from data_utils import SeqEHRDataLoader
+from training import SeqEHRTrainer
+
+from common_utils.config import MODEL_LOSS_MODES, MODEL_TYPE_FLAGS
 from common_utils.utils import SeqEHRLogger, pkl_load
+
+sys.path.append("../")
 
 
 def main(args):

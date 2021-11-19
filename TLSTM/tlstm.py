@@ -5,11 +5,11 @@
 # Author: BugFace
 #################
 
+import numpy as np
 import torch
-from torch.nn.parameter import Parameter
 from torch import nn as N
 from torch.nn import functional as F
-import numpy as np
+from torch.nn.parameter import Parameter
 
 
 class TLSTMConfig(object):

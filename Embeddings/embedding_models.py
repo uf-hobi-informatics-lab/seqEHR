@@ -4,13 +4,16 @@ we support LSTM, GRU, TLSTM, and TCN as learning framework
 """
 
 
+import sys
+
 import torch
 from torch import nn
-import sys
+
 sys.path.append("../")
 
+from common_utils.config import (EmbeddingReductionMode, ModelLossMode,
+                                 ModelType)
 from TLSTM.tlstm import TLSTMCell
-from common_utils.config import ModelType, ModelLossMode, EmbeddingReductionMode
 
 
 class SeqEmbEHRConfig:

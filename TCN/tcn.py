@@ -1,8 +1,11 @@
+import warnings
+
 import torch
 import torch.nn as nn
 from torch.nn.utils import weight_norm
-from common_utils.config import ModelType, ModelLossMode, EmbeddingReductionMode, EmbeddingReductionMode
-import warnings
+
+from common_utils.config import (EmbeddingReductionMode, ModelLossMode,
+                                 ModelType)
 
 
 class Chomp1d(nn.Module):

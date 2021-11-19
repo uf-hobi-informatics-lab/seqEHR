@@ -10,12 +10,15 @@ functions:
   3. convert data to tensor (checked)
 """
 
-from torch import tensor, float32, long
-from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
-
 import sys
+
+from torch import float32, long, tensor
+from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
+                              TensorDataset)
+
+from common_utils.config import ModelLossMode, ModelType
+
 sys.path.append("../")
-from common_utils.config import ModelType, ModelLossMode
 
 
 class SeqEHRDataLoader:

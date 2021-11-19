@@ -1,6 +1,9 @@
 import argparse
 import random
 import sys
+sys.path.append("../")
+
+
 from pathlib import Path
 
 import numpy as np
@@ -9,8 +12,6 @@ from sklearn.metrics import accuracy_score, roc_auc_score
 from tqdm import trange
 
 from tlstm import TLSTM, TLSTMConfig
-
-sys.path.append("../")
 
 from common_utils.utils import SeqEHRLogger, pkl_load, pkl_save
 

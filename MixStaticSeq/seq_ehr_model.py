@@ -5,6 +5,7 @@ from torch import nn
 from common_utils.config import ModelLossMode, ModelType
 from TLSTM.tlstm import TLSTMCell
 
+from collections import OrderedDict
 import sys
 
 sys.path.append("../")
@@ -14,16 +15,31 @@ class NonSeqModel(nn.Module):
     """
      This is a MLP model mapping OHE features to representations
     """
-    def __init__(self, input_dim, hidden_dim, output_dim):
+    def __init__(self, input_dim, hidden_dim, output_dim, num_mlp=2):
         super(NonSeqModel, self).__init__()
-        self.mlp1 = nn.Linear(input_dim, hidden_dim)
-        # self.mlp2 = nn.Linear(hidden_dim, hidden_dim)
-        self.mlp3 = nn.Linear(hidden_dim, output_dim)
+        assert num_mlp > 1, "the NonSeqModel should have at least two layers"
+
+        if num_mlp == 2:
+            self.mlp = nn.Sequential(
+                OrderedDict([
+                    ('layer1', nn.Linear(input_dim, hidden_dim)),
+                    # we need to test if add ReLu is good (other activation function or no activation)
+                    ('relu1', nn.ReLU()),
+                    ('layer2', nn.Linear(hidden_dim, output_dim))
+                ])
+            )
+        else:
+            layers = [nn.Linear(input_dim, hidden_dim)]
+            for _ in range(num_mlp-2):
+                layers.append(nn.Linear(hidden_dim, hidden_dim))
+                layers.append(nn.ReLU())
+            layers.append(nn.Linear(hidden_dim, output_dim))
+            self.mlp = nn.Sequential(
+                OrderedDict({str(i): layer for i, layer in enumerate(layers)})
+            )
 
     def forward(self, x):
-        x = self.mlp1(x)
-        # x = self.mlp2(x)
-        return self.mlp3(x)
+        return self.mlp(x)
 
 
 class MixModelConfig(object):

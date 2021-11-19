@@ -4,7 +4,6 @@ from pathlib import Path
 import numpy as np
 import torch
 
-sys.path.append("../")
 from seq_ehr_model import MixModel, MixModelConfig
 from sklearn.metrics import (accuracy_score, auc,
                              precision_recall_fscore_support, roc_auc_score,
@@ -13,6 +12,8 @@ from tqdm import tqdm, trange
 
 from common_utils.config import ModelLossMode, ModelOptimizers
 from common_utils.utils import pkl_load, pkl_save
+
+sys.path.append("../")
 
 
 def get_linear_schedule_with_warmup(optimizer, num_warmup_steps, num_training_steps, last_epoch=-1):
@@ -186,7 +187,8 @@ class SeqEHRTrainer(object):
                                      mix_hidden_dim=self.args.mix_hidden_dim,
                                      nonseq_output_dim=self.args.nonseq_representation_dim,
                                      mix_output_dim=self.args.mix_output_dim,
-                                     loss_mode=self.args.loss_mode)
+                                     loss_mode=self.args.loss_mode,
+                                     mlp_num=self.args.mlp_num)
         self.config.sampling_weight = self.args.sampling_weight
         self.model = MixModel(config=self.config, model_type=self.args.model_type)
         self.model.to(self.args.device)

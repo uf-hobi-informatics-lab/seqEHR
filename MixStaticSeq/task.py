@@ -116,6 +116,8 @@ if __name__ == '__main__':
     parser.add_argument("--log_step", default=-1, type=int,
                         help='steps before logging after run training. If -1, log every epoch')
     parser.add_argument("--mix_output_dim", default=2, type=int, help='mix model output dim')
+    parser.add_argument("--mlp_num", default=2, type=int,
+                        help='number of layers used in NonSeqModel, must be larger than 1')
     parser.add_argument("--batch_size", default=1, type=int, help='how many patients data we feed in each iteration')
     parser.add_argument("--loss_mode", default='bin', type=str,
                         help='using "bin" for Softmax+BCELoss or "mul" for CrossEntropyLoss')

@@ -2,13 +2,14 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
+import sys
+sys.path.append("../")
+
+
 from common_utils.config import ModelLossMode, ModelType
 from TLSTM.tlstm import TLSTMCell
 
 from collections import OrderedDict
-import sys
-
-sys.path.append("../")
 
 
 class NonSeqModel(nn.Module):
@@ -34,6 +35,7 @@ class NonSeqModel(nn.Module):
                 layers.append(nn.Linear(hidden_dim, hidden_dim))
                 layers.append(nn.ReLU())
             layers.append(nn.Linear(hidden_dim, output_dim))
+
             self.mlp = nn.Sequential(
                 OrderedDict({str(i): layer for i, layer in enumerate(layers)})
             )
@@ -83,20 +85,21 @@ class MixModel(nn.Module):
     def __init__(self, config, model_type=ModelType.M_LSTM):
         super(MixModel, self).__init__()
 
-        if model_type is ModelType.M_TLSTM:
+        if model_type == ModelType.M_TLSTM:
             # TLSTM hidden state dim = (B, h)
             self.seq_model = TLSTMCell(config.seq_input_dim, config.seq_hidden_dim)
-        elif model_type is ModelType.M_LSTM:
+        elif model_type == ModelType.M_LSTM:
             # LSTM hidden state dim = (batch, num_layers * num_directions, hidden_size)
             self.seq_model = nn.LSTM(config.seq_input_dim, config.seq_hidden_dim, batch_first=True)
-        elif model_type is ModelType.M_GRU:
+        elif model_type == ModelType.M_GRU:
             # LSTM hidden state dim = (batch, num_layers * num_directions, hidden_size)
             self.seq_model = nn.GRU(config.seq_input_dim, config.seq_hidden_dim, batch_first=True)
         else:
-            raise NotImplementedError("We only support model tlsm, lstm, gru but get {}".format(model_type.value))
+            raise NotImplementedError("We only support model tlsm, lstm, gru currently but get {}"
+                                      .format(model_type.value))
 
         self.non_seq_model = NonSeqModel(
-            config.nonseq_input_dim, config.nonseq_hidden_dim, config.nonseq_output_dim)
+            config.nonseq_input_dim, config.nonseq_hidden_dim, config.nonseq_output_dim, config.mlp_num)
 
         self.model_type = model_type
         self.dropout_rate = config.dropout_rate
@@ -149,10 +152,10 @@ class MixModel(nn.Module):
         logits = self.classifier(m_rep)
         pred_prob = F.softmax(logits, dim=-1)
 
-        if self.loss_mode is ModelLossMode.BIN:
+        if self.loss_mode == ModelLossMode.BIN:
             # y dim (B, 2)
             loss = F.binary_cross_entropy_with_logits(logits, y, weight=self.sampling_weight)
-        elif self.loss_mode is ModelLossMode.MUL:
+        elif self.loss_mode == ModelLossMode.MUL:
             # y dim (B, 1)
             loss = F.cross_entropy(logits, y, weight=self.sampling_weight)
         else:

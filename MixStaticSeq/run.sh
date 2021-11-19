@@ -4,12 +4,15 @@ export CUDA_VISIBLE_DEVICES=-1
 # # define data path
 train_data='../data/train.pkl'
 test_data='../data/test.pkl'
-new_model='./model'
-res_output='./result'
-mlog='./log.txt'
+new_model='../temp/model'
+res_output='../temp/result'
+mlog='../temp/log.txt'
+
+# if sequence length is different for each data point, set --various_seq_len flag
+# if set --various_seq_len flag, batch size will be fixed at 1; consider using SGD optimizer
 
 python task.py \
-    --model_type tlstm \
+    --model_type lstm \
     --train_data_path $train_data \
     --test_data_path $test_data \
     --new_model_path $new_model  \
@@ -29,5 +32,5 @@ python task.py \
     --mix_output_dim 2 \
     --log_step 2000 \
     --log_file $mlog \
-    --batch_size 1 \
+    --batch_size 4 \
     --loss_mode bin

@@ -1,4 +1,7 @@
 import sys
+sys.path.append("../")
+
+
 from pathlib import Path
 
 import numpy as np
@@ -12,8 +15,6 @@ from tqdm import tqdm, trange
 
 from common_utils.config import ModelLossMode, ModelOptimizers
 from common_utils.utils import pkl_load, pkl_save
-
-sys.path.append("../")
 
 
 def get_linear_schedule_with_warmup(optimizer, num_warmup_steps, num_training_steps, last_epoch=-1):
@@ -179,8 +180,8 @@ class SeqEHRTrainer(object):
 
     def _init_new_model(self):
         # init model
-        self.config = MixModelConfig(seq_input_dim=self.args.seq_input_dim[-1],
-                                     nonseq_input_dim=self.args.nonseq_input_dim[-1],
+        self.config = MixModelConfig(seq_input_dim=self.args.seq_input_dim,
+                                     nonseq_input_dim=self.args.nonseq_input_dim,
                                      dropout_rate=self.args.dropout_rate,
                                      nonseq_hidden_dim=self.args.nonseq_hidden_dim,
                                      seq_hidden_dim=self.args.seq_hidden_dim,

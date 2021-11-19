@@ -1,13 +1,16 @@
-import torch
-import numpy as np
-import argparse 
+import argparse
 import random
-from training import SeqEHRTrainer
-from data_utils import SeqEHRDataLoader
-from common_utils.config import MODEL_TYPE_FLAGS, MODEL_LOSS_MODES
-
 import sys
+
 sys.path.append("../")
+
+
+import numpy as np
+import torch
+from data_utils import SeqEHRDataLoader
+from training import SeqEHRTrainer
+
+from common_utils.config import MODEL_LOSS_MODES, MODEL_TYPE_FLAGS
 from common_utils.utils import SeqEHRLogger, pkl_load
 
 
@@ -29,6 +32,9 @@ def main(args):
     except ValueError:
         raise RuntimeError("we support: lstm, tlstm but get {}".format(args.loss_mode))
 
+    args.logger.info("model type: {}".format(args.model_type))
+    args.logger.info("loss mode: {}".format(args.loss_mode))
+
     # load data
     # if using TLSMT the data have 4 components as non-seq, seq, time elapse, label
     # if using LSTM the data have 3 components as non-seq, seq, label
@@ -38,11 +44,14 @@ def main(args):
     if args.do_train:
         train_data = pkl_load(args.train_data_path)
         train_data_loader = SeqEHRDataLoader(
-            train_data, args.model_type, args.loss_mode, args.batch_size, task='train').create_data_loader()
+            train_data, args.model_type, args.loss_mode, args.batch_size,
+            task='train', various_seq_len=args.various_seq_len
+        ).create_data_loader()
+
         args.total_step = len(train_data_loader)
         # collect input dim for model init (seq, dim)
-        args.nonseq_input_dim = train_data[0][0].shape
-        args.seq_input_dim = train_data[0][1].shape
+        args.nonseq_input_dim = train_data[0][0].shape[-1]
+        args.seq_input_dim = train_data[0][1].shape[-1]
 
         if args.sampling_weight:
             # the data should be a 1-D numpy array of  1/ratio of each class
@@ -55,7 +64,9 @@ def main(args):
         test_data = pkl_load(args.test_data_path)
         # create data loader (pin_memory is set to True) -> (B, S, T)
         test_data_loader = SeqEHRDataLoader(
-            test_data, args.model_type, args.loss_mode, args.batch_size, task='test').create_data_loader()
+            test_data, args.model_type, args.loss_mode, args.batch_size,
+            task='test', various_seq_len=args.various_seq_len
+        ).create_data_loader()
 
     # init task runner
     task_runner = SeqEHRTrainer(args)
@@ -73,8 +84,9 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_type", default='clstm', type=str,
-                        help="which model used for experiment. We have clstm, and ctlstm")
+    parser.add_argument("--model_type", default='lstm', type=str,
+                        help="which seq model used for experiment. "
+                             "We currently support: clstm, tlstm, gru")
     parser.add_argument("--train_data_path", default=None, type=str,
                         help="training data dir, should contain a feature, time, and label pickle files")
     parser.add_argument("--test_data_path", default=None, type=str,
@@ -114,11 +126,15 @@ if __name__ == '__main__':
     parser.add_argument("--log_step", default=-1, type=int,
                         help='steps before logging after run training. If -1, log every epoch')
     parser.add_argument("--mix_output_dim", default=2, type=int, help='mix model output dim')
+    parser.add_argument("--mlp_num", default=2, type=int,
+                        help='number of layers used in NonSeqModel, must be larger than 1')
     parser.add_argument("--batch_size", default=1, type=int, help='how many patients data we feed in each iteration')
     parser.add_argument("--loss_mode", default='bin', type=str,
                         help='using "bin" for Softmax+BCELoss or "mul" for CrossEntropyLoss')
     parser.add_argument('--fp16', action='store_true',
                         help="Whether to use 16-bit float precision (PyTorch 1.6 naive implementation)")
+    parser.add_argument("--various_seq_len", action='store_true',
+                        help="the sequential data have different sequence dimension for each data point")
 
     args = parser.parse_args()
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

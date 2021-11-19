@@ -1,14 +1,17 @@
+import sys
+
 import numpy as np
 import torch
 from torch import nn
-import sys
+
 sys.path.append("../")
 
-from common_utils.utils import pkl_load
-from common_utils.config import ModelType, ModelLossMode, EMBEDDING_REDUCTION_MODES
-from TCN.tcn import TemporalConvNetEHR, TemporalConvNetEHRConfig
-from sklearn.metrics import roc_auc_score, accuracy_score
+from sklearn.metrics import accuracy_score, roc_auc_score
 
+from common_utils.config import (EMBEDDING_REDUCTION_MODES, ModelLossMode,
+                                 ModelType)
+from common_utils.utils import pkl_load
+from TCN.tcn import TemporalConvNetEHR, TemporalConvNetEHRConfig
 
 if __name__ == '__main__':
     trsl = pkl_load("../data/tlstm_sync/label_train.pkl")

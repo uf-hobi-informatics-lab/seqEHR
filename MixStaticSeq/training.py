@@ -1,13 +1,20 @@
-import torch
-import numpy as np
-from pathlib import Path
 import sys
 sys.path.append("../")
-from common_utils.utils import pkl_save, pkl_load
-from common_utils.config import ModelOptimizers, ModelLossMode
-from seq_ehr_model import MixModelConfig, MixModel
-from sklearn.metrics import accuracy_score, roc_auc_score, auc, roc_curve, precision_recall_fscore_support
-from tqdm import trange, tqdm
+
+
+from pathlib import Path
+
+import numpy as np
+import torch
+
+from seq_ehr_model import MixModel, MixModelConfig
+from sklearn.metrics import (accuracy_score, auc,
+                             precision_recall_fscore_support, roc_auc_score,
+                             roc_curve)
+from tqdm import tqdm, trange
+
+from common_utils.config import ModelLossMode, ModelOptimizers
+from common_utils.utils import pkl_load, pkl_save
 
 
 def get_linear_schedule_with_warmup(optimizer, num_warmup_steps, num_training_steps, last_epoch=-1):
@@ -173,15 +180,16 @@ class SeqEHRTrainer(object):
 
     def _init_new_model(self):
         # init model
-        self.config = MixModelConfig(seq_input_dim=self.args.seq_input_dim[-1],
-                                     nonseq_input_dim=self.args.nonseq_input_dim[-1],
+        self.config = MixModelConfig(seq_input_dim=self.args.seq_input_dim,
+                                     nonseq_input_dim=self.args.nonseq_input_dim,
                                      dropout_rate=self.args.dropout_rate,
                                      nonseq_hidden_dim=self.args.nonseq_hidden_dim,
                                      seq_hidden_dim=self.args.seq_hidden_dim,
                                      mix_hidden_dim=self.args.mix_hidden_dim,
                                      nonseq_output_dim=self.args.nonseq_representation_dim,
                                      mix_output_dim=self.args.mix_output_dim,
-                                     loss_mode=self.args.loss_mode)
+                                     loss_mode=self.args.loss_mode,
+                                     mlp_num=self.args.mlp_num)
         self.config.sampling_weight = self.args.sampling_weight
         self.model = MixModel(config=self.config, model_type=self.args.model_type)
         self.model.to(self.args.device)

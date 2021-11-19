@@ -1,11 +1,14 @@
+import sys
+
 import numpy as np
 import torch
 from torch import nn
-import sys
+
 sys.path.append("../")
 
+from common_utils.config import (EmbeddingReductionMode, ModelLossMode,
+                                 ModelType)
 from common_utils.utils import pkl_load
-from common_utils.config import ModelType, ModelLossMode, EmbeddingReductionMode
 from Embeddings.embedding_models import SeqEmbEHR, SeqEmbEHRConfig
 
 
@@ -135,7 +138,7 @@ if __name__ == '__main__':
                 gs_labels = np.concatenate([gs_labels, labels], axis=0)
                 y_trues = np.concatenate([y_trues, labels[:, 1]], axis=0)
 
-    from sklearn.metrics import roc_auc_score, accuracy_score
+    from sklearn.metrics import accuracy_score, roc_auc_score
     total_acc = accuracy_score(y_trues, y_preds)
     total_auc = roc_auc_score(gs_labels, pred_labels, average='micro')
     total_auc_macro = roc_auc_score(gs_labels, pred_labels, average='macro')

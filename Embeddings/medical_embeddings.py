@@ -1,8 +1,10 @@
 import sys
-sys.path.append("../")
+
+import numpy as np
 
 from common_utils.utils import load_text, save_text
-import numpy as np
+
+sys.path.append("../")
 
 
 def code2index(codes, c2i):

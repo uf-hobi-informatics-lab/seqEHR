@@ -5,9 +5,9 @@ class ModelType(enum.Enum):
     M_LSTM = "lstm"
     M_GRU = "gru"
     M_TLSTM = "tlstm"
-    M_TCN = "tcn"
-    M_LSTM_ATT = "lstm-att"
-    M_TLSTM_ATT = "tlstm-att"
+#     M_TCN = "tcn"
+#     M_LSTM_ATT = "lstm-att"
+#     M_TLSTM_ATT = "tlstm-att"
 
 
 class ModelLossMode(enum.Enum):

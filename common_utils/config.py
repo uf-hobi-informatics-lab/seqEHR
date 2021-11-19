@@ -5,6 +5,9 @@ class ModelType(enum.Enum):
     M_LSTM = "lstm"
     M_GRU = "gru"
     M_TLSTM = "tlstm"
+    M_TCN = "tcn"
+    M_LSTM_ATT = "lstm-att"
+    M_TLSTM_ATT = "tlstm-att"
 
 
 class ModelLossMode(enum.Enum):
@@ -26,9 +29,7 @@ class ModelOptimizers(enum.Enum):
 
 
 MODEL_TYPE_FLAGS = {
-    "lstm": ModelType.M_LSTM,
-    "tlstm": ModelType.M_TLSTM,
-    "gru": ModelType.M_GRU,
+    each.value: each for each in ModelType
 }
 
 MODEL_LOSS_MODES = {"bin": ModelLossMode.BIN, "mul": ModelLossMode.MUL}
@@ -39,3 +40,6 @@ EMBEDDING_REDUCTION_MODES = {
     "sum": EmbeddingReductionMode.SUM,
     "max": EmbeddingReductionMode.MAX
 }
+
+
+UNIVERSE_PAD = -1000

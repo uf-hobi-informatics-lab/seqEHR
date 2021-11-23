@@ -205,15 +205,32 @@ class SeqEHRTrainer(object):
                 {'params': [p for n, p in self.model.named_parameters() if any(nd in n for nd in no_decay)],
                  'weight_decay': 0.0}
             ]
-            self.optimizer = torch.optim.AdamW(optimizer_grouped_parameters, lr=self.args.learning_rate, amsgrad=False)
+            self.optimizer = torch.optim.AdamW(
+                optimizer_grouped_parameters,
+                lr=self.args.learning_rate,
+                amsgrad=False)
         elif self.args.optim == ModelOptimizers.SGD.value:
             # using momentum SGD implementation and default momentum is set to 0.9 and use nesterov
             # high variance of the parameter updates; less stable convergence; but work with batch=1
             self.optimizer = torch.optim.SGD(
-                self.model.parameters(), lr=self.args.learning_rate, momentum=0.9, nesterov=True)
+                self.model.parameters(),
+                lr=self.args.learning_rate,
+                weight_decay=self.args.weight_decay,
+                momentum=0.9,
+                nesterov=False)
+        elif self.args.optim == ModelOptimizers.ASGD.value:
+            self.optimizer = torch.optim.ASGD(
+                self.model.parameters(),
+                lr=self.args.learning_rate,
+                weight_decay=self.args.weight_decay,
+                lambd=1e-4,
+                alpha=0.75,
+                t0=1e6
+            )
         else:
             # if optim option is not properly set, default using adam
-            self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.args.learning_rate, amsgrad=False)
+            self.optimizer = torch.optim.Adam(
+                self.model.parameters(), lr=self.args.learning_rate, amsgrad=False)
         self.args.logger.info("The optimizer detail:\n {}".format(self.optimizer))
 
         # set up optimizer warm up scheduler (you can set warmup_ratio=0 to deactivated this function)

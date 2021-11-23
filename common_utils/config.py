@@ -26,6 +26,7 @@ class EmbeddingReductionMode(enum.Enum):
 class ModelOptimizers(enum.Enum):
     ADAM = "adam"
     SGD = "sgd"
+    ASGD = "asgd"
 
 
 MODEL_TYPE_FLAGS = {

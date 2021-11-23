@@ -213,7 +213,7 @@ class SeqEHRTrainer(object):
                 self.model.parameters(), lr=self.args.learning_rate, momentum=0.9, nesterov=True)
         else:
             # if optim option is not properly set, default using adam
-            self.optimizer = torch.optim.Adam(self.args.model.parameters(), lr=self.args.learning_rate, amsgrad=True)
+            self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.args.learning_rate, amsgrad=True)
         self.args.logger.info("The optimizer detail:\n {}".format(self.optimizer))
 
         # set up optimizer warm up scheduler (you can set warmup_ratio=0 to deactivated this function)

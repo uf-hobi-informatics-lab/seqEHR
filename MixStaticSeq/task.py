@@ -106,7 +106,8 @@ if __name__ == '__main__':
                         help="Whether to run prediction on the test set.")
     parser.add_argument("--do_warmup", action='store_true',
                         help="Whether to use learning rate warm up strategy")
-    parser.add_argument("--optim", default="adam", type=str, help='the optimizer used for training')
+    parser.add_argument("--optim", default="adam", type=str, help='the optimizer used for training (adam, sgd, asgd).'
+                                                                  ' Note: we use adamW as default adam')
     parser.add_argument("--max_grad_norm", default=1.0, type=float, help='values [-mgn, mgn] to clip gradient')
     parser.add_argument("--weight_decay", default=0.0, type=float, help='weight decay used in AdamW')
     parser.add_argument("--eps", default=1e-8, type=float, help='eps for AdamW')

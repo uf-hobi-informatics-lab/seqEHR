@@ -136,6 +136,8 @@ if __name__ == '__main__':
                         help="Whether to use 16-bit float precision (PyTorch 1.6 naive implementation)")
     parser.add_argument("--various_seq_len", action='store_true',
                         help="the sequential data have different sequence dimension for each data point")
+    parser.add_argument("--non_linearity_for_non_seq_model", action='store_true',
+                        help="The non seq model is a linear MLP or non-linear MLP.")
 
     args = parser.parse_args()
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

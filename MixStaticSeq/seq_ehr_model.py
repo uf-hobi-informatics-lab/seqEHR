@@ -16,24 +16,17 @@ class NonSeqModel(nn.Module):
     """
      This is a MLP model mapping OHE features to representations
     """
-    def __init__(self, input_dim, hidden_dim, output_dim, num_mlp=2):
+    def __init__(self, input_dim, hidden_dim, output_dim, num_mlp=2, with_non_linearity=False):
         super(NonSeqModel, self).__init__()
-        assert num_mlp > 1, "the NonSeqModel should have at least two layers"
 
-        if num_mlp == 2:
-            self.mlp = nn.Sequential(
-                OrderedDict([
-                    ('layer1', nn.Linear(input_dim, hidden_dim)),
-                    # we need to test if add ReLu is good (other activation function or no activation)
-                    ('relu1', nn.ReLU()),
-                    ('layer2', nn.Linear(hidden_dim, output_dim))
-                ])
-            )
+        if num_mlp == 1:
+            self.mlp = nn.Linear(input_dim, output_dim)
         else:
             layers = [nn.Linear(input_dim, hidden_dim)]
             for _ in range(num_mlp-2):
                 layers.append(nn.Linear(hidden_dim, hidden_dim))
-                layers.append(nn.ReLU())
+                if with_non_linearity:
+                    layers.append(nn.ReLU())
             layers.append(nn.Linear(hidden_dim, output_dim))
 
             self.mlp = nn.Sequential(
@@ -99,7 +92,8 @@ class MixModel(nn.Module):
                                       .format(model_type.value))
 
         self.non_seq_model = NonSeqModel(
-            config.nonseq_input_dim, config.nonseq_hidden_dim, config.nonseq_output_dim, config.mlp_num)
+            config.nonseq_input_dim, config.nonseq_hidden_dim, config.nonseq_output_dim,
+            config.mlp_num, config.with_non_linearity)
 
         self.model_type = model_type
         self.dropout_rate = config.dropout_rate

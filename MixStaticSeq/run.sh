@@ -1,5 +1,6 @@
 # # set up GPU
 export CUDA_VISIBLE_DEVICES=-1
+export OMP_NUM_THREADS=8 # use 8 processes
 
 # # define data path
 train_data='../data/train.pkl'

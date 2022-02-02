@@ -191,6 +191,7 @@ class SeqEHRTrainer(object):
                                      loss_mode=self.args.loss_mode,
                                      mlp_num=self.args.mlp_num)
         self.config.sampling_weight = self.args.sampling_weight
+        self.config.with_non_linearity = self.args.non_linearity_for_non_seq_model
         self.model = MixModel(config=self.config, model_type=self.args.model_type)
         self.model.to(self.args.device)
 
